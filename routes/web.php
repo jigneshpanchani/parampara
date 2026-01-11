@@ -102,6 +102,7 @@ Route::middleware('auth')->group(function () {
         Route::get('payments/purchase/{purchaseId}', [\App\Http\Controllers\Admin\PaymentController::class, 'getPaymentsByPurchase'])->name('payments.by-purchase');
         Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('reports/sales', [ReportController::class, 'sales'])->name('reports.sales');
+        Route::post('reports/sales/export', [ReportController::class, 'exportSales'])->name('reports.sales.export');
         Route::get('reports/purchases', [ReportController::class, 'purchases'])->name('reports.purchases');
         Route::get('reports/stock', [ReportController::class, 'stock'])->name('reports.stock');
         Route::get('settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('settings.index');
