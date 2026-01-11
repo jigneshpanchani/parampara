@@ -1,0 +1,25 @@
+id,name,guard_name,slug,module
+1,Dashboard,web,dashboard,Dashboard
+2,List Users,web,users,Users
+3,Create User,web,user-create,Users
+4,Edit User,web,user-edit,Users
+5,Delete User,web,user-delete,Users
+6,User Activation,web,user-activation,Users
+7,List Setting,web,setting,Setting
+8,List Roles,web,roles,Roles & Permissions
+9,Create Roles,web,roles-create,Roles & Permissions
+10,Edit Roles,web,roles-edit,Roles & Permissions
+11,Delete Roles,web,roles-delete,Roles & Permissions
+12,Activity Log,web,logs,Logs
+13,List Expense,web,expense-list,Expenses
+14,Create Expense,web,expense-create,Expenses
+15,Edit Expense,web,expense-edit,Expenses
+16,Delete Expense,web,expense-delete,Expenses
+17,List Purchase Return,web,purchase-return-list,Purchase Returns
+18,Create Purchase Return,web,purchase-return-create,Purchase Returns
+19,Edit Purchase Return,web,purchase-return-edit,Purchase Returns
+20,Delete Purchase Return,web,purchase-return-delete,Purchase Returns
+21,List Sell Return,web,sell-return-list,Sell Returns
+22,Create Sell Return,web,sell-return-create,Sell Returns
+23,Edit Sell Return,web,sell-return-edit,Sell Returns
+24,Delete Sell Return,web,sell-return-delete,Sell Returns
