@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SellReturn;
 use App\Models\Sell;
 use App\Models\Product;
+use App\Services\StockService;
 use Illuminate\Http\Request;
 
 class SellReturnController extends Controller
@@ -54,7 +55,10 @@ class SellReturnController extends Controller
 
         $validated['total_return_amount'] = $validated['quantity'] * $validated['return_price'];
 
-        SellReturn::create($validated);
+        $return = SellReturn::create($validated);
+
+        // Add stock from sell return
+        StockService::addStockFromSellReturn($return);
 
         return redirect()->route('admin.sell-returns.index')->with('success', 'Sell return created successfully.');
     }
@@ -94,7 +98,13 @@ class SellReturnController extends Controller
 
         $validated['total_return_amount'] = $validated['quantity'] * $validated['return_price'];
 
+        // Remove old stock before updating
+        StockService::removeStockFromSellReturn($sellReturn);
+
         $sellReturn->update($validated);
+
+        // Add new stock
+        StockService::addStockFromSellReturn($sellReturn);
 
         return redirect()->route('admin.sell-returns.index')->with('success', 'Sell return updated successfully.');
     }
@@ -104,6 +114,9 @@ class SellReturnController extends Controller
      */
     public function destroy(SellReturn $sellReturn)
     {
+        // Remove stock before deleting
+        StockService::removeStockFromSellReturn($sellReturn);
+
         $sellReturn->delete();
         return redirect()->route('admin.sell-returns.index')->with('success', 'Sell return deleted successfully.');
     }

@@ -34,7 +34,7 @@ class DatabaseSeeder extends Seeder
                     'first_name'  => 'Admin',
                     'last_name' => 'User',
                     'email' => 'admin@parampara.com',
-                    'password' => bcrypt('password123'),
+                    'password' => bcrypt('Parampara@3536'),
                     'role_id' => 1,
                     'email_verified_at' => now(),
                     'status' => 1,

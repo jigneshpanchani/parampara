@@ -41,12 +41,16 @@
                                 <span class="text-gray-400">No photo</span>
                             @endif
                         </td>
-                        <td class="px-6 py-4 text-sm">
-                            <a href="{{ route('admin.products.edit', $product) }}" class="text-blue-500 hover:underline mr-3">Edit</a>
+                        <td class="px-6 py-4 text-sm space-x-3 flex items-center">
+                            <a href="{{ route('admin.products.edit', $product) }}" class="text-blue-500 hover:text-blue-700 text-xl transition" title="Edit Product">
+                                ✏️
+                            </a>
                             <form action="{{ route('admin.products.destroy', $product) }}" method="POST" class="inline delete-form" data-item-name="Product: {{ $product->product_name }}">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="text-red-500 hover:underline">Delete</button>
+                                <button type="submit" class="text-red-500 hover:text-red-700 text-xl transition" title="Delete Product">
+                                    🗑️
+                                </button>
                             </form>
                         </td>
                     </tr>

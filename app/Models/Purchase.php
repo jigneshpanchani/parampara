@@ -60,11 +60,30 @@ class Purchase extends Model
     }
 
     /**
+     * Get subtotal (items only)
+     */
+    public function getSubtotal()
+    {
+        return $this->items()->sum('total_price');
+    }
+
+    /**
+     * Get total payable amount (items + transportation + expense)
+     */
+    public function getTotalPayableAmount()
+    {
+        $subtotal = $this->getSubtotal();
+        $transportation = $this->transportation_cost ?? 0;
+        $expense = $this->expense ?? 0;
+        return $subtotal + $transportation + $expense;
+    }
+
+    /**
      * Get remaining amount to be paid
      */
     public function getRemainingAmount()
     {
-        return $this->total_amount - $this->getTotalPaidAmount();
+        return $this->getTotalPayableAmount() - $this->getTotalPaidAmount();
     }
 
     /**
@@ -73,5 +92,30 @@ class Purchase extends Model
     public function isFullyPaid()
     {
         return $this->getRemainingAmount() <= 0;
+    }
+
+    public function getPaymentStatus()
+    {
+        $totalPaid = $this->getTotalPaidAmount();
+        if ($totalPaid <= 0) {
+            return 'pending';
+        } elseif ($totalPaid >= $this->total_amount) {
+            return 'paid';
+        } else {
+            return 'partial';
+        }
+    }
+
+    /**
+     * Get payment status badge color
+     */
+    public function getPaymentStatusColor()
+    {
+        return match($this->getPaymentStatus()) {
+            'paid' => 'green',
+            'partial' => 'blue',
+            'pending' => 'yellow',
+            default => 'gray',
+        };
     }
 }

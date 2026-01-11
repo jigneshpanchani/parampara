@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Purchase;
 use App\Models\Product;
+use App\Services\StockService;
 use Illuminate\Http\Request;
 
 class PurchaseController extends Controller
@@ -14,8 +15,19 @@ class PurchaseController extends Controller
      */
     public function index()
     {
-        $purchases = Purchase::with('items')->get();
-        return view('admin.purchases.index', compact('purchases'));
+        // Get all purchases sorted by date descending
+        $purchases = Purchase::with('items', 'payments')
+            ->orderBy('purchase_date', 'desc')
+            ->get();
+
+        // Calculate dashboard statistics
+        $totalPurchases = $purchases->sum('total_amount');
+        $totalPaid = $purchases->sum(function ($purchase) {
+            return $purchase->getTotalPaidAmount();
+        });
+        $totalPending = $totalPurchases - $totalPaid;
+
+        return view('admin.purchases.index', compact('purchases', 'totalPurchases', 'totalPaid', 'totalPending'));
     }
 
     /**
@@ -71,6 +83,9 @@ class PurchaseController extends Controller
                 'total_price' => $product['quantity'] * $product['purchase_price'],
             ]);
         }
+
+        // Add stock from purchase
+        StockService::addStockFromPurchase($purchase->items);
 
         return redirect()->route('admin.purchases.index')->with('success', 'Purchase created successfully.');
     }
@@ -133,6 +148,9 @@ class PurchaseController extends Controller
             'total_amount' => $totalAmount,
         ]);
 
+        // Remove old stock before deleting items
+        StockService::removeStockFromPurchase($purchase->items);
+
         // Delete existing items and create new ones
         $purchase->items()->delete();
         foreach ($validated['product_id'] as $key => $productId) {
@@ -144,6 +162,9 @@ class PurchaseController extends Controller
             ]);
         }
 
+        // Add new stock
+        StockService::addStockFromPurchase($purchase->items);
+
         return redirect()->route('admin.purchases.index')->with('success', 'Purchase updated successfully.');
     }
 
@@ -152,8 +173,93 @@ class PurchaseController extends Controller
      */
     public function destroy(Purchase $purchase)
     {
+        // Remove stock before deleting
+        StockService::removeStockFromPurchase($purchase->items);
+
         $purchase->items()->delete();
         $purchase->delete();
         return redirect()->route('admin.purchases.index')->with('success', 'Purchase deleted successfully.');
+    }
+
+    public function getPaymentDetails(Purchase $purchase)
+    {
+        $purchase->load('items.product', 'payments');
+
+        $items = $purchase->items->map(function ($item) {
+            return [
+                'product_name' => $item->product->product_name,
+                'quantity' => $item->quantity,
+                'purchase_price' => number_format($item->purchase_price, 2),
+                'total_price' => number_format($item->total_price, 2),
+            ];
+        });
+
+        $payments = $purchase->payments->map(function ($payment) {
+            return [
+                'payment_date' => $payment->payment_date->format('d M Y'),
+                'amount' => number_format($payment->amount, 2),
+                'payment_method' => $payment->getPaymentMethodLabel(),
+                'payment_status' => ucfirst($payment->payment_status),
+                'reference_number' => $payment->reference_number ?? '-',
+                'notes' => $payment->notes ?? '-',
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'purchase' => [
+                'id' => $purchase->id,
+                'supplier_name' => $purchase->supplier_name,
+                'purchase_date' => $purchase->purchase_date->format('d M Y'),
+                'subtotal' => number_format($purchase->getSubtotal(), 2),
+                'transportation_cost' => number_format($purchase->transportation_cost ?? 0, 2),
+                'expense' => number_format($purchase->expense ?? 0, 2),
+                'total_payable' => number_format($purchase->getTotalPayableAmount(), 2),
+                'total_amount' => number_format($purchase->total_amount, 2),
+                'total_paid' => number_format($purchase->getTotalPaidAmount(), 2),
+                'remaining_amount' => number_format($purchase->getRemainingAmount(), 2),
+                'payment_status' => ucfirst($purchase->getPaymentStatus()),
+            ],
+            'items' => $items,
+            'payments' => $payments,
+        ]);
+    }
+
+    /**
+     * Add payment for a purchase
+     */
+    public function addPayment(Request $request, Purchase $purchase)
+    {
+        $validated = $request->validate([
+            'payment_date' => 'required|date',
+            'amount' => 'required|numeric|min:0.01',
+            'payment_method' => 'required|in:cash,cheque,bank_transfer,credit_card,other',
+            'reference_number' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
+        ]);
+
+        $payment = $purchase->payments()->create([
+            'payment_date' => $validated['payment_date'],
+            'amount' => $validated['amount'],
+            'payment_method' => $validated['payment_method'],
+            'reference_number' => $validated['reference_number'],
+            'notes' => $validated['notes'],
+            'payment_status' => 'paid',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment recorded successfully.',
+            'payment' => [
+                'payment_date' => $payment->payment_date->format('d M Y'),
+                'amount' => number_format($payment->amount, 2),
+                'payment_method' => $payment->getPaymentMethodLabel(),
+                'payment_status' => ucfirst($payment->payment_status),
+                'reference_number' => $payment->reference_number ?? '-',
+                'notes' => $payment->notes ?? '-',
+            ],
+            'total_paid' => number_format($purchase->getTotalPaidAmount() + $validated['amount'], 2),
+            'remaining_amount' => number_format($purchase->getRemainingAmount() - $validated['amount'], 2),
+        ]);
     }
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Sell;
 use App\Models\SellItem;
 use App\Models\Product;
+use App\Services\StockService;
 use Illuminate\Http\Request;
 
 class SellController extends Controller
@@ -86,6 +87,9 @@ class SellController extends Controller
             ]);
         }
 
+        // Deduct stock from sale
+        StockService::deductStockFromSale($sell->items);
+
         return redirect()->route('admin.sells.index')->with('success', 'Sale recorded successfully.');
     }
 
@@ -153,6 +157,9 @@ class SellController extends Controller
             'notes' => $validated['notes'],
         ]);
 
+        // Add back old stock before deleting items
+        StockService::addStockBackFromSale($sell->items);
+
         // Delete old items and create new ones
         $sell->items()->delete();
         foreach ($validated['product_id'] as $key => $productId) {
@@ -166,6 +173,9 @@ class SellController extends Controller
             ]);
         }
 
+        // Deduct new stock
+        StockService::deductStockFromSale($sell->items);
+
         return redirect()->route('admin.sells.index')->with('success', 'Sale updated successfully.');
     }
 
@@ -174,6 +184,9 @@ class SellController extends Controller
      */
     public function destroy(Sell $sell)
     {
+        // Add back stock before deleting
+        StockService::addStockBackFromSale($sell->items);
+
         $sell->items()->delete();
         $sell->delete();
         return redirect()->route('admin.sells.index')->with('success', 'Sale deleted successfully.');

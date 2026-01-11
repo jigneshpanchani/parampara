@@ -71,11 +71,30 @@ class ReportController extends Controller
      */
     public function stock()
     {
-        $products = Product::all();
+        $products = Product::with('purchaseItems', 'sellItems', 'purchaseReturns', 'sellReturns')->get();
+
+        // Calculate stock data for each product
+        $stockData = $products->map(function ($product) {
+            $totalPurchase = $product->purchaseItems->sum('quantity');
+            $totalSell = $product->sellItems->sum('quantity');
+            $purchaseReturn = $product->purchaseReturns->sum('quantity');
+            $sellReturn = $product->sellReturns->sum('quantity');
+            $availableStock = $totalPurchase - $purchaseReturn - $totalSell + $sellReturn;
+
+            return [
+                'product' => $product,
+                'total_purchase' => $totalPurchase,
+                'total_sell' => $totalSell,
+                'purchase_return' => $purchaseReturn,
+                'sell_return' => $sellReturn,
+                'available_stock' => max(0, $availableStock),
+            ];
+        });
+
         $totalProducts = $products->count();
 
         return view('admin.reports.stock', compact(
-            'products',
+            'stockData',
             'totalProducts'
         ));
     }

@@ -21,11 +21,11 @@ class UserController extends Controller
 
     public function __construct()
     {
-        $this->middleware('permission:List Users')->only(['index']);
-        $this->middleware('permission:Create User')->only(['create', 'store']);
-        $this->middleware('permission:Edit User')->only(['edit', 'update']);
-        $this->middleware('permission:Delete User')->only('destroy');
-        $this->middleware('permission:User Activation')->only('activation');
+        //$this->middleware('permission:List Users')->only(['index']);
+        //$this->middleware('permission:Create User')->only(['create', 'store']);
+        //$this->middleware('permission:Edit User')->only(['edit', 'update']);
+        //$this->middleware('permission:Delete User')->only('destroy');
+        //$this->middleware('permission:User Activation')->only('activation');
     }
 
     use QueryTrait;

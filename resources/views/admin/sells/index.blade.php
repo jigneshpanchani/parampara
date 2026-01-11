@@ -21,7 +21,6 @@
                 <tr>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Date</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Seller Name</th>
-                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Contact</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Product</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Qty</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Price</th>
@@ -37,7 +36,6 @@
                     <tr class="border-b hover:bg-gray-50">
                         <td class="px-6 py-4 text-sm text-gray-900">{{ $sell->sell_date->format('d M Y') }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">{{ $sell->seller_name ?? '-' }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-600">{{ $sell->seller_contact_number ?? '-' }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">
                             @foreach($sell->items as $item)
                                 <div>{{ $item->product->product_name }}</div>

@@ -89,6 +89,8 @@ Route::middleware('auth')->group(function () {
         Route::resource('stocks', StockController::class);
         Route::resource('products', ProductController::class);
         Route::resource('purchases', PurchaseController::class);
+        Route::get('purchases/{purchase}/payment-details', [PurchaseController::class, 'getPaymentDetails'])->name('purchases.paymentDetails');
+        Route::post('purchases/{purchase}/add-payment', [PurchaseController::class, 'addPayment'])->name('purchases.addPayment');
         Route::resource('sells', SellController::class);
         Route::resource('expense-categories', \App\Http\Controllers\Admin\ExpenseCategoryController::class);
         Route::get('expense-categories-list', [\App\Http\Controllers\Admin\ExpenseCategoryController::class, 'getCategories'])->name('expense-categories.list');

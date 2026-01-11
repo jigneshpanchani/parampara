@@ -12,8 +12,8 @@ class SettingController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:List Setting')->only(['index']);
-        $this->middleware('permission:Activity Log')->only(['getAllLogs', 'loadMoreLogs']);
+        //$this->middleware('permission:List Setting')->only(['index']);
+        //$this->middleware('permission:Activity Log')->only(['getAllLogs', 'loadMoreLogs']);
     }
 
     public function index(Request $request)
