@@ -148,6 +148,49 @@
             </div>
         </form>
     </div>
+
+    <!-- Password Reset Section -->
+    <div class="bg-white rounded-lg shadow p-6 mt-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">🔒 Change Password</h2>
+
+        <form action="{{ route('admin.settings.update-password') }}" method="POST">
+            @csrf
+            @method('PUT')
+
+            <!-- Current Password -->
+            <div class="mb-6">
+                <label for="current_password" class="block text-sm font-semibold text-gray-700 mb-2">Current Password</label>
+                <input type="password" id="current_password" name="current_password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                @error('current_password')
+                    <span class="text-red-500 text-sm">{{ $message }}</span>
+                @enderror
+            </div>
+
+            <!-- New Password -->
+            <div class="mb-6">
+                <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">New Password</label>
+                <input type="password" id="password" name="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                <p class="text-gray-500 text-sm mt-1">Minimum 8 characters</p>
+                @error('password')
+                    <span class="text-red-500 text-sm">{{ $message }}</span>
+                @enderror
+            </div>
+
+            <!-- Confirm New Password -->
+            <div class="mb-6">
+                <label for="password_confirmation" class="block text-sm font-semibold text-gray-700 mb-2">Confirm New Password</label>
+                <input type="password" id="password_confirmation" name="password_confirmation" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                @error('password_confirmation')
+                    <span class="text-red-500 text-sm">{{ $message }}</span>
+                @enderror
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex gap-4">
+                <button type="submit" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded">Update Password</button>
+            </div>
+        </form>
+    </div>
 </div>
 @endsection
 

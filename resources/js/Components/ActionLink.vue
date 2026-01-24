@@ -5,6 +5,14 @@ defineProps({
     href: {
         type: String,
         required: true,
+    },
+    method: {
+        type: String,
+        default: 'get',
+    },
+    as: {
+        type: String,
+        default: 'a',
     }
 });
 </script>
@@ -12,6 +20,8 @@ defineProps({
 <template>
     <Link
         :href="href"
+        :method="method"
+        :as="as"
         class="flex space-x-2 block px-3 py-2 text-gray-700 hover:bg-gray-100 focus:outline-none transition duration-150 ease-in-out w-full"
     >
     <slot name="svg" />

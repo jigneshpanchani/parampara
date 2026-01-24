@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\CompanyProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 
 class SettingsController extends Controller
 {
@@ -54,8 +56,14 @@ class SettingsController extends Controller
             return redirect()->back()->with('error', 'Could not determine the latest backup file.');
         }
 
-        // Download the file
-        return response()->download($latestFile);
+        // Generate filename with date suffix in format: originalFilename_ddmmyyyy.extension
+        $originalName = pathinfo($latestFile, PATHINFO_FILENAME);
+        $extension = pathinfo($latestFile, PATHINFO_EXTENSION);
+        $dateSuffix = date('dmY'); // Format: ddmmyyyy (e.g., 24012026)
+        $downloadName = $originalName . '_' . $dateSuffix . '.' . $extension;
+
+        // Download the file with new name
+        return response()->download($latestFile, $downloadName);
     }
 
     /**
@@ -114,5 +122,22 @@ class SettingsController extends Controller
         $settings->fill($validated)->save();
 
         return redirect()->route('admin.settings.index')->with('success', 'Settings updated successfully!');
+    }
+
+    /**
+     * Update user password
+     */
+    public function updatePassword(Request $request)
+    {
+        $validated = $request->validate([
+            'current_password' => ['required', 'current_password'],
+            'password' => ['required', Password::defaults(), 'confirmed'],
+        ]);
+
+        $request->user()->update([
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        return redirect()->route('admin.settings.index')->with('success', 'Password updated successfully!');
     }
 }
