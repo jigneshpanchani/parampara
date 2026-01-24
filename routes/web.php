@@ -107,6 +107,7 @@ Route::middleware('auth')->group(function () {
         Route::get('reports/stock', [ReportController::class, 'stock'])->name('reports.stock');
         Route::get('settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('settings.index');
         Route::put('settings', [\App\Http\Controllers\Admin\SettingsController::class, 'update'])->name('settings.update');
+        Route::get('db-backup/download', [\App\Http\Controllers\Admin\SettingsController::class, 'downloadDbBackup'])->name('db-backup.download');
     });
 
 });

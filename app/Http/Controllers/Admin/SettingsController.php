@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\CompanyProfile;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 
 class SettingsController extends Controller
 {
@@ -15,6 +16,46 @@ class SettingsController extends Controller
     {
         $settings = CompanyProfile::first() ?? new CompanyProfile();
         return view('admin.settings.index', compact('settings'));
+    }
+
+    /**
+     * Download database backup
+     */
+    public function downloadDbBackup()
+    {
+        // Path to the DB backup directory
+        $backupPath = 'D:\\etc\\Batsal\\Parampara\\DB Backup';
+
+        // Check if directory exists
+        if (!File::exists($backupPath)) {
+            return redirect()->back()->with('error', 'Backup directory not found: ' . $backupPath);
+        }
+
+        // Get all files in the backup directory
+        $files = File::files($backupPath);
+
+        if (empty($files)) {
+            return redirect()->back()->with('error', 'No backup files found in the directory.');
+        }
+
+        // Get the most recent file
+        $latestFile = null;
+        $latestTime = 0;
+
+        foreach ($files as $file) {
+            $fileTime = File::lastModified($file);
+            if ($fileTime > $latestTime) {
+                $latestTime = $fileTime;
+                $latestFile = $file;
+            }
+        }
+
+        if (!$latestFile) {
+            return redirect()->back()->with('error', 'Could not determine the latest backup file.');
+        }
+
+        // Download the file
+        return response()->download($latestFile);
     }
 
     /**

@@ -148,6 +148,16 @@ const hasPermission = (permission) => {
                 </nav>
             </div>
             <div class="mt-auto px-4 mt-1 space-y-2">
+                <!-- DB Backup Button -->
+                <Link :href="route('admin.db-backup.download')" class="w-full">
+                    <div class="flex items-center gap-x-3 rounded-md px-3 py-2 text-sm font-semibold leading-6 text-gray-700 hover:bg-indigo-600 hover:text-white group transition-colors duration-200">
+                        <svg class="h-6 w-6 shrink-0 text-gray-700 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33A3 3 0 0116.5 19.5H6.75z"/>
+                        </svg>
+                        <span>💾 DB Backup</span>
+                    </div>
+                </Link>
+
                 <SideMenu v-if="$can('List Setting')" :href="route('setting')" :active="(route().current('setting') || route().current('roles.permission') ||
                         route().current('roles.index') || route().current('roles.create') || route().current('roles.edit'))">
                     <template #svg>
