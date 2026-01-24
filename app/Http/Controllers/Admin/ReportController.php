@@ -125,7 +125,7 @@ class ReportController extends Controller
         }
 
         $sells = $query->orderBy('sell_date', 'desc')->get();
-        $products = Product::all();
+        $products = Product::orderBy('id')->get();
 
         // Create Excel file
         $fileName = 'Sales_Report_' . ($startDate ? date('M-Y', strtotime($startDate)) : 'All') . '.xlsx';
@@ -139,8 +139,14 @@ class ReportController extends Controller
             $sheet->setCellValue('A1', $monthYear);
             $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
 
-            // Set headers - Updated to include separate Online and Cash columns
-            $headers = ['Date', 'ZAR', 'DOL', 'TIN', 'KEN', 'BOTTLE', 'B-Tal', 'W-Tal', 'Sing', 'Marchu', 'Online', 'Cash', 'Return', 'Return Details', 'Total', 'Expense', 'Exp.Detail', 'Total'];
+            // Build dynamic headers - Date + Product Codes + Sales/Return/Expense columns
+            $headers = ['Date'];
+            foreach ($products as $product) {
+                $headers[] = $product->product_code;
+            }
+            $headers = array_merge($headers, ['Online', 'Cash', 'Return', 'Return Details', 'Total', 'Expense', 'Exp.Detail', 'Total']);
+
+            // Write headers
             $col = 1;
             foreach ($headers as $header) {
                 $sheet->setCellValueByColumnAndRow($col, 3, $header);
@@ -148,15 +154,37 @@ class ReportController extends Controller
                 $col++;
             }
 
+            // Calculate column positions for sales/expense data
+            $productCount = $products->count();
+            $onlineCol = 2 + $productCount;
+            $cashCol = $onlineCol + 1;
+            $returnCol = $cashCol + 1;
+            $returnDetailsCol = $returnCol + 1;
+            $totalCol = $returnDetailsCol + 1;
+            $expenseCol = $totalCol + 1;
+            $expenseDetailsCol = $expenseCol + 1;
+            $finalTotalCol = $expenseDetailsCol + 1;
+
             // Group sells by date
             $sellsByDate = $sells->groupBy(function ($sell) {
                 return $sell->sell_date->format('d-m-Y');
             });
 
+            // Sort dates in ascending order
+            /*$sellsByDate = $sellsByDate->sortKeys(function ($a, $b) {
+                return strtotime(str_replace('-', '/', $a)) <=> strtotime(str_replace('-', '/', $b));
+            });*/
+
             $row = 4;
             $totalCash = 0;
             $totalOnline = 0;
             $totalExpense = 0;
+
+            // Initialize product-wise totals
+            $productTotals = [];
+            foreach ($products as $product) {
+                $productTotals[$product->product_code] = 0;
+            }
 
             foreach ($sellsByDate as $date => $dateSells) {
                 // Get product quantities for this date
@@ -197,7 +225,9 @@ class ReportController extends Controller
                 }
 
                 // Get expenses for this date
-                $dateExpenses = Expense::whereDate('expense_date', $date)->get();
+                // Convert date from d-m-Y to Y-m-d format for database query
+                $dbDate = \DateTime::createFromFormat('d-m-Y', $date)->format('Y-m-d');
+                $dateExpenses = Expense::with('expenseCategory')->whereDate('expense_date', $dbDate)->get();
                 foreach ($dateExpenses as $expense) {
                     $dateExpenseAmount += $expense->amount;
                 }
@@ -205,51 +235,55 @@ class ReportController extends Controller
                 // Write date
                 $sheet->setCellValueByColumnAndRow(1, $row, $date);
 
-                // Write product quantities
+                // Write product quantities dynamically
                 $col = 2;
                 foreach ($products as $product) {
                     $code = $product->product_code;
                     if (isset($productQtys[$code]) && $productQtys[$code] > 0) {
                         $sheet->setCellValueByColumnAndRow($col, $row, $productQtys[$code]);
+                        // Accumulate product totals
+                        $productTotals[$code] += $productQtys[$code];
                     }
                     $col++;
                 }
 
-                // Write online amount (column 11)
-                $sheet->setCellValueByColumnAndRow(11, $row, $dateOnlineAmount > 0 ? $dateOnlineAmount : '');
+                // Write online amount (dynamic column)
+                $sheet->setCellValueByColumnAndRow($onlineCol, $row, $dateOnlineAmount > 0 ? $dateOnlineAmount : '');
 
-                // Write cash amount (column 12)
-                $sheet->setCellValueByColumnAndRow(12, $row, $dateCashAmount > 0 ? $dateCashAmount : '');
+                // Write cash amount (dynamic column)
+                $sheet->setCellValueByColumnAndRow($cashCol, $row, $dateCashAmount > 0 ? $dateCashAmount : '');
 
-                // Write return info (column 13)
-                $sheet->setCellValueByColumnAndRow(13, $row, $dateReturnAmount > 0 ? $dateReturnAmount : '');
+                // Write return info (dynamic column)
+                $sheet->setCellValueByColumnAndRow($returnCol, $row, $dateReturnAmount > 0 ? $dateReturnAmount : '');
 
-                // Write return details (column 14)
+                // Write return details (dynamic column)
                 $returnDetails = '';
                 foreach ($dateSells as $sell) {
                     foreach ($sell->returns as $return) {
                         $returnDetails .= $return->product->product_code . ': ' . $return->quantity . '; ';
                     }
                 }
-                $sheet->setCellValueByColumnAndRow(14, $row, trim($returnDetails));
+                $sheet->setCellValueByColumnAndRow($returnDetailsCol, $row, trim($returnDetails));
 
-                // Write total (column 15) - Sales - Returns
+                // Write total (dynamic column) - Sales - Returns
                 $total = ($dateCashAmount + $dateOnlineAmount) - $dateReturnAmount;
-                $sheet->setCellValueByColumnAndRow(15, $row, $total);
+                $sheet->setCellValueByColumnAndRow($totalCol, $row, $total);
 
-                // Write expense (column 16)
-                $sheet->setCellValueByColumnAndRow(16, $row, $dateExpenseAmount > 0 ? $dateExpenseAmount : '');
+                // Write expense (dynamic column)
+                $sheet->setCellValueByColumnAndRow($expenseCol, $row, $dateExpenseAmount > 0 ? $dateExpenseAmount : '');
 
-                // Write expense details (column 17)
+                // Write expense details (dynamic column)
                 $expenseDetails = '';
                 foreach ($dateExpenses as $expense) {
-                    $expenseDetails .= $expense->description . '; ';
+                    $categoryName = $expense->expenseCategory ? $expense->expenseCategory->name : 'Other';
+                    $description = $expense->description ? $expense->description : $categoryName;
+                    $expenseDetails .= number_format($expense->amount, 0) . '/- ' . $description . '; ';
                 }
-                $sheet->setCellValueByColumnAndRow(17, $row, trim($expenseDetails));
+                $sheet->setCellValueByColumnAndRow($expenseDetailsCol, $row, trim($expenseDetails));
 
-                // Write final total (column 18) - Sales - Returns - Expenses
+                // Write final total (dynamic column) - Sales - Returns - Expenses
                 $finalTotal = $total - $dateExpenseAmount;
-                $sheet->setCellValueByColumnAndRow(18, $row, $finalTotal);
+                $sheet->setCellValueByColumnAndRow($finalTotalCol, $row, $finalTotal);
 
                 $totalCash += $dateCashAmount;
                 $totalOnline += $dateOnlineAmount;
@@ -257,9 +291,38 @@ class ReportController extends Controller
                 $row++;
             }
 
-            // Auto-size columns
-            foreach (range('A', 'R') as $col) {
-                $sheet->getColumnDimension($col)->setAutoSize(true);
+            // Add total row
+            $row++; // Skip one row
+            $sheet->setCellValueByColumnAndRow(1, $row, 'TOTAL');
+            $sheet->getStyleByColumnAndRow(1, $row)->getFont()->setBold(true);
+
+            // Write product-wise totals
+            $col = 2;
+            foreach ($products as $product) {
+                $code = $product->product_code;
+                if (isset($productTotals[$code]) && $productTotals[$code] > 0) {
+                    $sheet->setCellValueByColumnAndRow($col, $row, $productTotals[$code]);
+                    $sheet->getStyleByColumnAndRow($col, $row)->getFont()->setBold(true);
+                }
+                $col++;
+            }
+
+            // Total Online (dynamic column)
+            $sheet->setCellValueByColumnAndRow($onlineCol, $row, $totalOnline);
+            $sheet->getStyleByColumnAndRow($onlineCol, $row)->getFont()->setBold(true);
+
+            // Total Cash (dynamic column)
+            $sheet->setCellValueByColumnAndRow($cashCol, $row, $totalCash);
+            $sheet->getStyleByColumnAndRow($cashCol, $row)->getFont()->setBold(true);
+
+            // Total Expense (dynamic column)
+            $sheet->setCellValueByColumnAndRow($expenseCol, $row, $totalExpense);
+            $sheet->getStyleByColumnAndRow($expenseCol, $row)->getFont()->setBold(true);
+
+            // Auto-size columns dynamically based on total column count
+            $totalColumns = $finalTotalCol;
+            for ($i = 1; $i <= $totalColumns; $i++) {
+                $sheet->getColumnDimensionByColumn($i)->setAutoSize(true);
             }
 
             $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
