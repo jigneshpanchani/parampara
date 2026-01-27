@@ -151,8 +151,18 @@
                             💾 DB Backup
                         </span>
                     </a>
-                </nav>
 
+                    <form method="POST" action="{{ route('logout') }}" class="block">
+                        @csrf
+                        <button type="submit" class="w-full text-left m-2 px-4 py-2 text-white hover:bg-gray-100 rounded-b-lg flex items-center">
+                            <svg class="h-6 w-6 shrink-0 text-white group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"/>
+                            </svg>
+                            &nbsp; Logout
+                        </button>
+                    </form>
+
+                </nav>
 
             </div>
 

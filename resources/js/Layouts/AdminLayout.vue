@@ -174,11 +174,11 @@ const hasPermission = (permission) => {
 
                 <!-- Logout Button -->
                 <Link :href="route('logout')" method="post" as="button" class="w-full">
-                    <div class="flex items-center gap-x-3 rounded-md px-3 py-2 text-sm font-semibold leading-6 text-gray-700 hover:bg-gray-100 hover:text-gray-900 group transition-colors duration-200">
-                        <svg class="h-6 w-6 shrink-0 text-gray-700 group-hover:text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0110.5 3h6a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0116.5 21h-6a2.25 2.25 0 01-2.25-2.25V15m-3 0l3-3m0 0l3 3m-3-3v12"/>
+                    <div class="flex items-center gap-x-3 rounded-md px-3 py-2 text-sm font-semibold leading-6 text-white hover:bg-red-600 hover:text-white group transition-colors duration-200">
+                        <svg class="h-6 w-6 shrink-0 text-white group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"/>
                         </svg>
-                        <span>Logout</span>
+                        <span>🚪 Logout</span>
                     </div>
                 </Link>
             </div>
@@ -281,11 +281,11 @@ const hasPermission = (permission) => {
                         <!-- Mobile Logout Button -->
                         <div class="border-t pt-4 mt-auto">
                             <Link :href="route('logout')" method="post" as="button" class="w-full">
-                                <div class="flex items-center gap-x-3 rounded-md px-3 py-2 text-sm font-semibold leading-6 text-gray-700 hover:bg-gray-100 hover:text-gray-900 group transition-colors duration-200">
-                                    <svg class="h-6 w-6 shrink-0 text-gray-700 group-hover:text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0110.5 3h6a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0116.5 21h-6a2.25 2.25 0 01-2.25-2.25V15m-3 0l3-3m0 0l3 3m-3-3v12"/>
+                                <div class="flex items-center gap-x-3 rounded-md px-3 py-2 text-sm font-semibold leading-6 text-white hover:bg-red-600 hover:text-white group transition-colors duration-200">
+                                    <svg class="h-6 w-6 shrink-0 text-white group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"/>
                                     </svg>
-                                    <span>Logout</span>
+                                    <span>🚪 Logout</span>
                                 </div>
                             </Link>
                         </div>
