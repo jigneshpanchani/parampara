@@ -16,7 +16,7 @@ class SellController extends Controller
      */
     public function index()
     {
-        $sells = Sell::with('items.product')->latest()->paginate(20);
+        $sells = Sell::with('items.product')->orderBy('sell_date', 'desc')->paginate(20);
         return view('admin.sells.index', compact('sells'));
     }
 
@@ -46,6 +46,8 @@ class SellController extends Controller
             'selling_price.*' => 'required|numeric|min:0',
             'payment_mode' => 'required|in:cash,upi,qr,mix',
             'amount_paid' => 'required|numeric|min:0',
+            'cash_amount' => 'nullable|numeric|min:0',
+            'online_amount' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
         ]);
 
@@ -53,6 +55,15 @@ class SellController extends Controller
         $totalAmount = 0;
         foreach ($validated['product_id'] as $key => $productId) {
             $totalAmount += $validated['quantity'][$key] * $validated['selling_price'][$key];
+        }
+
+        // Handle mix payment mode
+        $cashAmount = 0;
+        $onlineAmount = 0;
+        if ($validated['payment_mode'] === 'mix') {
+            $cashAmount = $validated['cash_amount'] ?? 0;
+            $onlineAmount = $validated['online_amount'] ?? 0;
+            $validated['amount_paid'] = $cashAmount + $onlineAmount;
         }
 
         $pendingAmount = max($totalAmount - $validated['amount_paid'], 0);
@@ -67,10 +78,14 @@ class SellController extends Controller
         // Create sell record
         $sell = Sell::create([
             'sell_date' => $validated['sell_date'],
+            'seller_name' => $validated['seller_name'],
+            'seller_contact_number' => $validated['seller_contact_number'],
             'total_amount' => $totalAmount,
             'payment_mode' => $validated['payment_mode'],
             'payment_status' => $paymentStatus,
             'amount_paid' => $validated['amount_paid'],
+            'cash_amount' => $cashAmount,
+            'online_amount' => $onlineAmount,
             'pending_amount' => $pendingAmount,
             'notes' => $validated['notes'],
         ]);
@@ -128,6 +143,8 @@ class SellController extends Controller
             'selling_price.*' => 'required|numeric|min:0',
             'payment_mode' => 'required|in:cash,upi,qr,mix',
             'amount_paid' => 'required|numeric|min:0',
+            'cash_amount' => 'nullable|numeric|min:0',
+            'online_amount' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
         ]);
 
@@ -135,6 +152,15 @@ class SellController extends Controller
         $totalAmount = 0;
         foreach ($validated['product_id'] as $key => $productId) {
             $totalAmount += $validated['quantity'][$key] * $validated['selling_price'][$key];
+        }
+
+        // Handle mix payment mode
+        $cashAmount = 0;
+        $onlineAmount = 0;
+        if ($validated['payment_mode'] === 'mix') {
+            $cashAmount = $validated['cash_amount'] ?? 0;
+            $onlineAmount = $validated['online_amount'] ?? 0;
+            $validated['amount_paid'] = $cashAmount + $onlineAmount;
         }
 
         $pendingAmount = max($totalAmount - $validated['amount_paid'], 0);
@@ -149,10 +175,14 @@ class SellController extends Controller
         // Update sell record
         $sell->update([
             'sell_date' => $validated['sell_date'],
+            'seller_name' => $validated['seller_name'],
+            'seller_contact_number' => $validated['seller_contact_number'],
             'total_amount' => $totalAmount,
             'payment_mode' => $validated['payment_mode'],
             'payment_status' => $paymentStatus,
             'amount_paid' => $validated['amount_paid'],
+            'cash_amount' => $cashAmount,
+            'online_amount' => $onlineAmount,
             'pending_amount' => $pendingAmount,
             'notes' => $validated['notes'],
         ]);

@@ -63,6 +63,10 @@ class ReportController extends Controller
         $onlineSales = $sells->whereIn('payment_mode', ['upi', 'qr'])->sum('total_amount');
         $mixSales = $sells->where('payment_mode', 'mix')->sum('total_amount');
 
+        // Add cash and online amounts from mix payments to respective totals
+        $cashSales += $sells->where('payment_mode', 'mix')->sum('cash_amount');
+        $onlineSales += $sells->where('payment_mode', 'mix')->sum('online_amount');
+
         // Calculate product-wise quantity breakdown
         $quantityByProduct = [];
         foreach ($sells as $sell) {
@@ -205,8 +209,9 @@ class ReportController extends Controller
                     } elseif (in_array($sell->payment_mode, ['upi', 'qr'])) {
                         $dateOnlineAmount += $sell->total_amount;
                     } elseif ($sell->payment_mode === 'mix') {
-                        // For mix payments, we need to track both - for now add to cash
-                        $dateCashAmount += $sell->total_amount;
+                        // For mix payments, add cash and online amounts separately
+                        $dateCashAmount += $sell->cash_amount ?? 0;
+                        $dateOnlineAmount += $sell->online_amount ?? 0;
                     }
 
                     foreach ($sell->items as $item) {

@@ -83,7 +83,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-4 mb-4">
+            <div class="grid grid-cols-4 gap-4 mb-4">
                 <div>
                     <label for="total_amount" class="block text-sm font-semibold text-gray-700 mb-2">Total Amount</label>
                     <input type="text" id="total_amount" name="total_amount" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none" readonly value="{{ old('total_amount', number_format($sell->total_amount, 2, '.', '')) }}">
@@ -101,11 +101,26 @@
                         <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
                 </div>
-                <div>
+                <div id="amount_paid_container">
                     <label for="amount_paid" class="block text-sm font-semibold text-gray-700 mb-2">Amount Paid *</label>
                     <input type="number" id="amount_paid" name="amount_paid" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required min="0" value="{{ old('amount_paid', $sell->amount_paid) }}">
                     @error('amount_paid')
                         <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
+                </div>
+                <!-- Cash Amount (shown only when payment_mode is 'mix') -->
+                <div id="cash_amount_container" style="display: none;">
+                    <label for="cash_amount" class="block text-sm font-semibold text-gray-700 mb-2">Cash Amount *</label>
+                    <input type="number" id="cash_amount" name="cash_amount" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" min="0" value="{{ old('cash_amount', $sell->cash_amount ?? 0) }}">
+                    @error('cash_amount')
+                    <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
+                </div>
+                <div id="online_amount_container" style="display: none;">
+                    <label for="online_amount" class="block text-sm font-semibold text-gray-700 mb-2">Online Amount *</label>
+                    <input type="number" id="online_amount" name="online_amount" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" min="0" value="{{ old('online_amount', $sell->online_amount ?? 0) }}">
+                    @error('online_amount')
+                    <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
                 </div>
             </div>
@@ -228,6 +243,50 @@ if (document.querySelectorAll('.product-row').length) {
     });
     updateTotals();
 }
+
+// Handle payment mode change
+const paymentModeSelect = document.getElementById('payment_mode');
+const cashAmountContainer = document.getElementById('cash_amount_container');
+const onlineAmountContainer = document.getElementById('online_amount_container');
+const amountPaidContainer = document.getElementById('amount_paid_container');
+const amountPaidInput = document.getElementById('amount_paid');
+const cashAmountInput = document.getElementById('cash_amount');
+const onlineAmountInput = document.getElementById('online_amount');
+
+function handlePaymentModeChange() {
+    const paymentMode = paymentModeSelect.value;
+
+    if (paymentMode === 'mix') {
+        // Show cash and online amount fields, hide amount paid
+        cashAmountContainer.style.display = 'block';
+        onlineAmountContainer.style.display = 'block';
+        amountPaidContainer.style.display = 'none';
+        amountPaidInput.removeAttribute('required');
+        cashAmountInput.setAttribute('required', 'required');
+        onlineAmountInput.setAttribute('required', 'required');
+    } else {
+        // Hide cash and online amount fields, show amount paid
+        cashAmountContainer.style.display = 'none';
+        onlineAmountContainer.style.display = 'none';
+        amountPaidContainer.style.display = 'block';
+        amountPaidInput.setAttribute('required', 'required');
+        cashAmountInput.removeAttribute('required');
+        onlineAmountInput.removeAttribute('required');
+    }
+}
+
+function updateAmountPaidFromMix() {
+    const cashAmount = parseFloat(cashAmountInput.value) || 0;
+    const onlineAmount = parseFloat(onlineAmountInput.value) || 0;
+    amountPaidInput.value = (cashAmount + onlineAmount).toFixed(2);
+}
+
+paymentModeSelect.addEventListener('change', handlePaymentModeChange);
+cashAmountInput.addEventListener('input', updateAmountPaidFromMix);
+onlineAmountInput.addEventListener('input', updateAmountPaidFromMix);
+
+// Initialize on page load
+handlePaymentModeChange();
 </script>
 @endsection
 

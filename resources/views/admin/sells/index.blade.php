@@ -20,14 +20,15 @@
             <thead class="bg-gray-100 border-b">
                 <tr>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Date</th>
-                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Seller Name</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Product</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Qty</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Price</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Total</th>
+                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Paid Amount</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Payment Mode</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Pending</th>
+                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Notes</th>
                     <th class="px-6 py-3 text-center text-sm font-semibold text-gray-700">Actions</th>
                 </tr>
             </thead>
@@ -35,7 +36,6 @@
                 @foreach ($sells as $sell)
                     <tr class="border-b hover:bg-gray-50">
                         <td class="px-6 py-4 text-sm text-gray-900">{{ $sell->sell_date->format('d M Y') }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-600">{{ $sell->seller_name ?? '-' }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">
                             @foreach($sell->items as $item)
                                 <div>{{ $item->product->product_name }}</div>
@@ -52,6 +52,15 @@
                             @endforeach
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-600">₹{{ number_format($sell->total_amount, 2, '.', '') }}</td>
+                        <td class="px-6 py-4 text-sm text-green-600 font-semibold">
+                            ₹{{ number_format($sell->amount_paid, 2, '.', '') }}
+                            @if($sell->payment_mode === 'mix' && ($sell->cash_amount > 0 || $sell->online_amount > 0))
+                                <div class="text-xs text-gray-500 mt-1">
+                                    <span class="text-blue-600">Cash: ₹{{ number_format($sell->cash_amount, 2, '.', '') }}</span> |
+                                    <span class="text-purple-600">Online: ₹{{ number_format($sell->online_amount, 2, '.', '') }}</span>
+                                </div>
+                            @endif
+                        </td>
                         <td class="px-6 py-4 text-sm">
                             <span class="px-2 py-1 rounded text-xs font-semibold {{ $sell->payment_mode === 'cash' ? 'bg-blue-100 text-blue-800' : ($sell->payment_mode === 'upi' ? 'bg-purple-100 text-purple-800' : ($sell->payment_mode === 'qr' ? 'bg-green-100 text-green-800' : 'bg-indigo-100 text-indigo-800')) }}">
                                 {{ strtoupper($sell->payment_mode) }}
@@ -63,6 +72,13 @@
                             </span>
                         </td>
                         <td class="px-6 py-4 text-sm text-red-600">₹{{ number_format($sell->pending_amount, 2, '.', '') }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-600">
+                            @if($sell->notes)
+                                <span class="text-xs" title="{{ $sell->notes }}">{{ Str::limit($sell->notes, 30) }}</span>
+                            @else
+                                <span class="text-gray-400">-</span>
+                            @endif
+                        </td>
                         <td class="px-6 py-4 text-sm flex gap-3 justify-center">
                             <a href="{{ route('admin.sells.edit', $sell) }}" class="text-blue-500 hover:text-blue-700 transition" title="Edit">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -83,6 +99,11 @@
                 @endforeach
             </tbody>
         </table>
+    </div>
+
+    <!-- Pagination Links -->
+    <div class="mt-6">
+        {{ $sells->links() }}
     </div>
 @endif
 @endsection

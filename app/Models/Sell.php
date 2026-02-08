@@ -17,6 +17,8 @@ class Sell extends Model
         'payment_mode',
         'payment_status',
         'amount_paid',
+        'cash_amount',
+        'online_amount',
         'pending_amount',
         'notes',
     ];
