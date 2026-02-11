@@ -38,12 +38,18 @@ class ReportController extends Controller
     {
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
+        $paymentMode = $request->input('payment_mode');
 
         $query = Sell::with('items.product', 'returns');
 
         // Apply date filter if provided
         if ($startDate && $endDate) {
             $query->whereBetween('sell_date', [$startDate, $endDate]);
+        }
+
+        // Apply payment mode filter if provided
+        if ($paymentMode) {
+            $query->where('payment_mode', $paymentMode);
         }
 
         $sells = $query->orderBy('sell_date', 'desc')->get();
@@ -94,7 +100,8 @@ class ReportController extends Controller
             'mixSales',
             'quantityByProduct',
             'startDate',
-            'endDate'
+            'endDate',
+            'paymentMode'
         ));
     }
 
@@ -328,6 +335,124 @@ class ReportController extends Controller
             $totalColumns = $finalTotalCol;
             for ($i = 1; $i <= $totalColumns; $i++) {
                 $sheet->getColumnDimensionByColumn($i)->setAutoSize(true);
+            }
+
+            // Add product-wise payment mode breakdown sections
+            $row += 3; // Skip rows for spacing
+
+            // Calculate product-wise breakdown by payment mode
+            $productPaymentQty = []; // [product_code][payment_mode] = quantity
+            $productPaymentAmount = []; // [product_code][payment_mode] = amount
+
+            foreach ($products as $product) {
+                $productPaymentQty[$product->product_code] = [
+                    'upi' => 0,
+                    'qr' => 0,
+                    'cash' => 0,
+                    'mix' => 0
+                ];
+                $productPaymentAmount[$product->product_code] = [
+                    'upi' => 0,
+                    'qr' => 0,
+                    'cash' => 0,
+                    'mix' => 0
+                ];
+            }
+
+            // Aggregate data by product and payment mode
+            foreach ($sells as $sell) {
+                foreach ($sell->items as $item) {
+                    $code = $item->product->product_code;
+                    $paymentMode = $sell->payment_mode;
+
+                    if (isset($productPaymentQty[$code][$paymentMode])) {
+                        $productPaymentQty[$code][$paymentMode] += $item->quantity;
+                        $productPaymentAmount[$code][$paymentMode] += $item->total_price;
+                    }
+                }
+            }
+
+            // Section 1: Product-wise Quantity by Payment Mode
+            $sheet->setCellValueByColumnAndRow(1, $row, 'Product-wise Quantity by Payment Mode');
+            $sheet->mergeCells("A{$row}:F{$row}"); // Merge A to F for title
+            $sheet->getStyleByColumnAndRow(1, $row)->getFont()->setBold(true)->setSize(12);
+            $row++;
+
+            // Headers for quantity section
+            $sheet->setCellValueByColumnAndRow(1, $row, 'Product');
+            $sheet->setCellValueByColumnAndRow(2, $row, 'UPI');
+            $sheet->setCellValueByColumnAndRow(3, $row, 'QR');
+            $sheet->setCellValueByColumnAndRow(4, $row, 'CASH');
+            $sheet->setCellValueByColumnAndRow(5, $row, 'MIX');
+            $sheet->setCellValueByColumnAndRow(6, $row, 'Total');
+            $sheet->getStyleByColumnAndRow(1, $row)->getFont()->setBold(true);
+            $sheet->getStyleByColumnAndRow(2, $row)->getFont()->setBold(true);
+            $sheet->getStyleByColumnAndRow(3, $row)->getFont()->setBold(true);
+            $sheet->getStyleByColumnAndRow(4, $row)->getFont()->setBold(true);
+            $sheet->getStyleByColumnAndRow(5, $row)->getFont()->setBold(true);
+            $sheet->getStyleByColumnAndRow(6, $row)->getFont()->setBold(true);
+            $row++;
+
+            // Write quantity data (only for products with sales)
+            foreach ($products as $product) {
+                $code = $product->product_code;
+                $totalQty = $productPaymentQty[$code]['upi'] + $productPaymentQty[$code]['qr'] +
+                           $productPaymentQty[$code]['cash'] + $productPaymentQty[$code]['mix'];
+
+                // Skip products with no sales
+                if ($totalQty == 0) {
+                    continue;
+                }
+
+                $sheet->setCellValueByColumnAndRow(1, $row, $code);
+                $sheet->setCellValueByColumnAndRow(2, $row, $productPaymentQty[$code]['upi'] > 0 ? $productPaymentQty[$code]['upi'] : '');
+                $sheet->setCellValueByColumnAndRow(3, $row, $productPaymentQty[$code]['qr'] > 0 ? $productPaymentQty[$code]['qr'] : '');
+                $sheet->setCellValueByColumnAndRow(4, $row, $productPaymentQty[$code]['cash'] > 0 ? $productPaymentQty[$code]['cash'] : '');
+                $sheet->setCellValueByColumnAndRow(5, $row, $productPaymentQty[$code]['mix'] > 0 ? $productPaymentQty[$code]['mix'] : '');
+                $sheet->setCellValueByColumnAndRow(6, $row, $totalQty);
+                $row++;
+            }
+
+            // Section 2: Product-wise Amount by Payment Mode
+            $row += 2; // Skip rows for spacing
+            $sheet->setCellValueByColumnAndRow(1, $row, 'Product-wise Amount by Payment Mode');
+            $sheet->mergeCells("A{$row}:F{$row}"); // Merge A to F for title
+            $sheet->getStyleByColumnAndRow(1, $row)->getFont()->setBold(true)->setSize(12);
+            $row++;
+
+            // Headers for amount section
+            $sheet->setCellValueByColumnAndRow(1, $row, 'Product');
+            $sheet->setCellValueByColumnAndRow(2, $row, 'UPI');
+            $sheet->setCellValueByColumnAndRow(3, $row, 'QR');
+            $sheet->setCellValueByColumnAndRow(4, $row, 'CASH');
+            $sheet->setCellValueByColumnAndRow(5, $row, 'MIX');
+            $sheet->setCellValueByColumnAndRow(6, $row, 'Total');
+            $sheet->getStyleByColumnAndRow(1, $row)->getFont()->setBold(true);
+            $sheet->getStyleByColumnAndRow(2, $row)->getFont()->setBold(true);
+            $sheet->getStyleByColumnAndRow(3, $row)->getFont()->setBold(true);
+            $sheet->getStyleByColumnAndRow(4, $row)->getFont()->setBold(true);
+            $sheet->getStyleByColumnAndRow(5, $row)->getFont()->setBold(true);
+            $sheet->getStyleByColumnAndRow(6, $row)->getFont()->setBold(true);
+            $row++;
+
+            // Write amount data (only for products with sales)
+            foreach ($products as $product) {
+                $code = $product->product_code;
+                $totalAmount = $productPaymentAmount[$code]['upi'] + $productPaymentAmount[$code]['qr'] +
+                              $productPaymentAmount[$code]['cash'] + $productPaymentAmount[$code]['mix'];
+
+                // Skip products with no sales
+                if ($totalAmount == 0) {
+                    continue;
+                }
+
+                $sheet->setCellValueByColumnAndRow(1, $row, $code);
+                $sheet->setCellValueByColumnAndRow(2, $row, $productPaymentAmount[$code]['upi'] > 0 ? $productPaymentAmount[$code]['upi'] : '');
+                $sheet->setCellValueByColumnAndRow(3, $row, $productPaymentAmount[$code]['qr'] > 0 ? $productPaymentAmount[$code]['qr'] : '');
+                $sheet->setCellValueByColumnAndRow(4, $row, $productPaymentAmount[$code]['cash'] > 0 ? $productPaymentAmount[$code]['cash'] : '');
+                $sheet->setCellValueByColumnAndRow(5, $row, $productPaymentAmount[$code]['mix'] > 0 ? $productPaymentAmount[$code]['mix'] : '');
+                $sheet->setCellValueByColumnAndRow(6, $row, $totalAmount);
+                $row++;
             }
 
             $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
