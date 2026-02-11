@@ -47,6 +47,7 @@ class PurchaseController extends Controller
         $validated = $request->validate([
             'purchase_date' => 'required|date',
             'supplier_name' => 'required|string|max:255',
+            'bill_type' => 'required|in:gst,without_gst',
             'bill_details' => 'nullable|string',
             'transportation_cost' => 'nullable|numeric|min:0',
             'bill_due_date' => 'nullable|date',
@@ -67,6 +68,7 @@ class PurchaseController extends Controller
         $purchase = Purchase::create([
             'purchase_date' => $validated['purchase_date'],
             'supplier_name' => $validated['supplier_name'],
+            'bill_type' => $validated['bill_type'],
             'bill_details' => $validated['bill_details'],
             'transportation_cost' => $validated['transportation_cost'] ?? 0,
             'bill_due_date' => $validated['bill_due_date'],
@@ -116,6 +118,7 @@ class PurchaseController extends Controller
         $validated = $request->validate([
             'purchase_date' => 'required|date',
             'supplier_name' => 'required|string|max:255',
+            'bill_type' => 'required|in:gst,without_gst',
             'bill_details' => 'nullable|string',
             'transportation_cost' => 'nullable|numeric|min:0',
             'bill_due_date' => 'nullable|date',
@@ -140,6 +143,7 @@ class PurchaseController extends Controller
         $purchase->update([
             'purchase_date' => $validated['purchase_date'],
             'supplier_name' => $validated['supplier_name'],
+            'bill_type' => $validated['bill_type'],
             'bill_details' => $validated['bill_details'],
             'transportation_cost' => $validated['transportation_cost'] ?? 0,
             'bill_due_date' => $validated['bill_due_date'],

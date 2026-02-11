@@ -94,7 +94,7 @@
                         <option value="">Select Mode</option>
                         <option value="cash" {{ old('payment_mode', $sell->payment_mode) === 'cash' ? 'selected' : '' }}>Cash</option>
                         <option value="upi" {{ old('payment_mode', $sell->payment_mode) === 'upi' ? 'selected' : '' }}>UPI</option>
-                        <option value="qr" {{ old('payment_mode', $sell->payment_mode) === 'qr' ? 'selected' : '' }}>QR Code</option>
+                        <option value="gpay" {{ old('payment_mode', $sell->payment_mode) === 'gpay' ? 'selected' : '' }}>G-pay</option>
                         <option value="mix" {{ old('payment_mode', $sell->payment_mode) === 'mix' ? 'selected' : '' }}>Mix (Cash & Online)</option>
                     </select>
                     @error('payment_mode')

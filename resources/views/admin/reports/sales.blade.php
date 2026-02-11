@@ -25,7 +25,7 @@
                     <option value="">All</option>
                     <option value="cash" {{ ($paymentMode ?? '') === 'cash' ? 'selected' : '' }}>Cash</option>
                     <option value="upi" {{ ($paymentMode ?? '') === 'upi' ? 'selected' : '' }}>UPI</option>
-                    <option value="qr" {{ ($paymentMode ?? '') === 'qr' ? 'selected' : '' }}>QR</option>
+                    <option value="gpay" {{ ($paymentMode ?? '') === 'gpay' ? 'selected' : '' }}>G-pay</option>
                     <option value="mix" {{ ($paymentMode ?? '') === 'mix' ? 'selected' : '' }}>Mix</option>
                 </select>
             </div>
@@ -114,8 +114,8 @@
                                 <span class="px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-800">CASH</span>
                             @elseif($sell->payment_mode === 'upi')
                                 <span class="px-2 py-1 rounded text-xs font-semibold bg-purple-100 text-purple-800">UPI</span>
-                            @elseif($sell->payment_mode === 'qr')
-                                <span class="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-800">QR</span>
+                            @elseif($sell->payment_mode === 'gpay')
+                                <span class="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-800">G-PAY</span>
                             @elseif($sell->payment_mode === 'mix')
                                 <span class="px-2 py-1 rounded text-xs font-semibold bg-indigo-100 text-indigo-800">MIX</span>
                                 @if($sell->cash_amount > 0 || $sell->online_amount > 0)

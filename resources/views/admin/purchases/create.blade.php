@@ -10,7 +10,7 @@
         <form action="{{ route('admin.purchases.store') }}" method="POST">
             @csrf
 
-            <div class="grid grid-cols-3 gap-4 mb-4">
+            <div class="grid grid-cols-4 gap-4 mb-4">
                 <div>
                     <label for="purchase_date" class="block text-sm font-semibold text-gray-700 mb-2">Purchase Date *</label>
                     <input type="date" id="purchase_date" name="purchase_date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required value="{{ old('purchase_date', date('Y-m-d')) }}">
@@ -22,6 +22,16 @@
                     <label for="supplier_name" class="block text-sm font-semibold text-gray-700 mb-2">Supplier Name *</label>
                     <input type="text" id="supplier_name" name="supplier_name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required value="{{ old('supplier_name') }}">
                     @error('supplier_name')
+                        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
+                </div>
+                <div>
+                    <label for="bill_type" class="block text-sm font-semibold text-gray-700 mb-2">Bill Type *</label>
+                    <select id="bill_type" name="bill_type" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <option value="gst" {{ old('bill_type', 'gst') === 'gst' ? 'selected' : '' }}>GST</option>
+                        <option value="without_gst" {{ old('bill_type') === 'without_gst' ? 'selected' : '' }}>Without GST</option>
+                    </select>
+                    @error('bill_type')
                         <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
                 </div>

@@ -13,7 +13,7 @@ return new class extends Migration
     public function up(): void
     {
         // For MySQL, we need to alter the enum column to add 'mix'
-        DB::statement("ALTER TABLE sells MODIFY COLUMN payment_mode ENUM('cash', 'upi', 'qr', 'mix') DEFAULT 'cash'");
+        DB::statement("ALTER TABLE sells MODIFY COLUMN payment_mode ENUM('cash', 'upi', 'gpay', 'mix') DEFAULT 'cash'");
     }
 
     /**
@@ -22,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         // Revert back to original enum values
-        DB::statement("ALTER TABLE sells MODIFY COLUMN payment_mode ENUM('cash', 'upi', 'qr') DEFAULT 'cash'");
+        DB::statement("ALTER TABLE sells MODIFY COLUMN payment_mode ENUM('cash', 'upi', 'gpay') DEFAULT 'cash'");
     }
 };
 

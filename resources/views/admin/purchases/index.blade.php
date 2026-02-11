@@ -54,6 +54,7 @@
                 <tr>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Date</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Supplier</th>
+                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Bill Type</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Items</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Total Amount</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Due Date</th>
@@ -66,6 +67,13 @@
                     <tr class="border-b hover:bg-gray-50">
                         <td class="px-6 py-4 text-sm text-gray-900">{{ $purchase->purchase_date->format('d M Y') }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">{{ $purchase->supplier_name }}</td>
+                        <td class="px-6 py-4 text-sm">
+                            @if(($purchase->bill_type ?? 'gst') === 'gst')
+                                <span class="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-800">GST</span>
+                            @else
+                                <span class="px-2 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-800">Without GST</span>
+                            @endif
+                        </td>
                         <td class="px-6 py-4 text-sm text-gray-600">{{ $purchase->items->count() }} items</td>
                         <td class="px-6 py-4 text-sm text-gray-600">₹{{ number_format($purchase->total_amount, 2) }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">{{ $purchase->bill_due_date ? $purchase->bill_due_date->format('d M Y') : '-' }}</td>

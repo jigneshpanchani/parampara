@@ -12,6 +12,7 @@ class Purchase extends Model
     protected $fillable = [
         'purchase_date',
         'supplier_name',
+        'bill_type',
         'bill_details',
         'transportation_cost',
         'bill_due_date',

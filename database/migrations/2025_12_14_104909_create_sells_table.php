@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->date('sell_date');
             $table->decimal('total_amount', 10, 2);
-            $table->enum('payment_mode', ['cash', 'upi', 'qr'])->default('cash');
+            $table->enum('payment_mode', ['cash', 'upi', 'gpay'])->default('cash');
             $table->enum('payment_status', ['paid', 'pending', 'partial'])->default('paid');
             $table->decimal('amount_paid', 10, 2)->default(0);
             $table->decimal('pending_amount', 10, 2)->default(0);

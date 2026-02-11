@@ -62,8 +62,8 @@
                             @endif
                         </td>
                         <td class="px-6 py-4 text-sm">
-                            <span class="px-2 py-1 rounded text-xs font-semibold {{ $sell->payment_mode === 'cash' ? 'bg-blue-100 text-blue-800' : ($sell->payment_mode === 'upi' ? 'bg-purple-100 text-purple-800' : ($sell->payment_mode === 'qr' ? 'bg-green-100 text-green-800' : 'bg-indigo-100 text-indigo-800')) }}">
-                                {{ strtoupper($sell->payment_mode) }}
+                            <span class="px-2 py-1 rounded text-xs font-semibold {{ $sell->payment_mode === 'cash' ? 'bg-blue-100 text-blue-800' : ($sell->payment_mode === 'upi' ? 'bg-purple-100 text-purple-800' : ($sell->payment_mode === 'gpay' ? 'bg-green-100 text-green-800' : 'bg-indigo-100 text-indigo-800')) }}">
+                                {{ $sell->payment_mode === 'gpay' ? 'G-PAY' : strtoupper($sell->payment_mode) }}
                             </span>
                         </td>
                         <td class="px-6 py-4 text-sm">

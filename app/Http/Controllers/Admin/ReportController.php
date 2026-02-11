@@ -66,7 +66,7 @@ class ReportController extends Controller
 
         // Calculate cash and online sales separately
         $cashSales = $sells->where('payment_mode', 'cash')->sum('total_amount');
-        $onlineSales = $sells->whereIn('payment_mode', ['upi', 'qr'])->sum('total_amount');
+        $onlineSales = $sells->whereIn('payment_mode', ['upi', 'gpay'])->sum('total_amount');
         $mixSales = $sells->where('payment_mode', 'mix')->sum('total_amount');
 
         // Add cash and online amounts from mix payments to respective totals
@@ -213,7 +213,7 @@ class ReportController extends Controller
                     // Separate cash and online sales
                     if ($sell->payment_mode === 'cash') {
                         $dateCashAmount += $sell->total_amount;
-                    } elseif (in_array($sell->payment_mode, ['upi', 'qr'])) {
+                    } elseif (in_array($sell->payment_mode, ['upi', 'gpay'])) {
                         $dateOnlineAmount += $sell->total_amount;
                     } elseif ($sell->payment_mode === 'mix') {
                         // For mix payments, add cash and online amounts separately
@@ -347,13 +347,13 @@ class ReportController extends Controller
             foreach ($products as $product) {
                 $productPaymentQty[$product->product_code] = [
                     'upi' => 0,
-                    'qr' => 0,
+                    'gpay' => 0,
                     'cash' => 0,
                     'mix' => 0
                 ];
                 $productPaymentAmount[$product->product_code] = [
                     'upi' => 0,
-                    'qr' => 0,
+                    'gpay' => 0,
                     'cash' => 0,
                     'mix' => 0
                 ];
@@ -381,7 +381,7 @@ class ReportController extends Controller
             // Headers for quantity section
             $sheet->setCellValueByColumnAndRow(1, $row, 'Product');
             $sheet->setCellValueByColumnAndRow(2, $row, 'UPI');
-            $sheet->setCellValueByColumnAndRow(3, $row, 'QR');
+            $sheet->setCellValueByColumnAndRow(3, $row, 'G-PAY');
             $sheet->setCellValueByColumnAndRow(4, $row, 'CASH');
             $sheet->setCellValueByColumnAndRow(5, $row, 'MIX');
             $sheet->setCellValueByColumnAndRow(6, $row, 'Total');
@@ -396,7 +396,7 @@ class ReportController extends Controller
             // Write quantity data (only for products with sales)
             foreach ($products as $product) {
                 $code = $product->product_code;
-                $totalQty = $productPaymentQty[$code]['upi'] + $productPaymentQty[$code]['qr'] +
+                $totalQty = $productPaymentQty[$code]['upi'] + $productPaymentQty[$code]['gpay'] +
                            $productPaymentQty[$code]['cash'] + $productPaymentQty[$code]['mix'];
 
                 // Skip products with no sales
@@ -406,7 +406,7 @@ class ReportController extends Controller
 
                 $sheet->setCellValueByColumnAndRow(1, $row, $code);
                 $sheet->setCellValueByColumnAndRow(2, $row, $productPaymentQty[$code]['upi'] > 0 ? $productPaymentQty[$code]['upi'] : '');
-                $sheet->setCellValueByColumnAndRow(3, $row, $productPaymentQty[$code]['qr'] > 0 ? $productPaymentQty[$code]['qr'] : '');
+                $sheet->setCellValueByColumnAndRow(3, $row, $productPaymentQty[$code]['gpay'] > 0 ? $productPaymentQty[$code]['gpay'] : '');
                 $sheet->setCellValueByColumnAndRow(4, $row, $productPaymentQty[$code]['cash'] > 0 ? $productPaymentQty[$code]['cash'] : '');
                 $sheet->setCellValueByColumnAndRow(5, $row, $productPaymentQty[$code]['mix'] > 0 ? $productPaymentQty[$code]['mix'] : '');
                 $sheet->setCellValueByColumnAndRow(6, $row, $totalQty);
@@ -423,7 +423,7 @@ class ReportController extends Controller
             // Headers for amount section
             $sheet->setCellValueByColumnAndRow(1, $row, 'Product');
             $sheet->setCellValueByColumnAndRow(2, $row, 'UPI');
-            $sheet->setCellValueByColumnAndRow(3, $row, 'QR');
+            $sheet->setCellValueByColumnAndRow(3, $row, 'G-PAY');
             $sheet->setCellValueByColumnAndRow(4, $row, 'CASH');
             $sheet->setCellValueByColumnAndRow(5, $row, 'MIX');
             $sheet->setCellValueByColumnAndRow(6, $row, 'Total');
@@ -438,7 +438,7 @@ class ReportController extends Controller
             // Write amount data (only for products with sales)
             foreach ($products as $product) {
                 $code = $product->product_code;
-                $totalAmount = $productPaymentAmount[$code]['upi'] + $productPaymentAmount[$code]['qr'] +
+                $totalAmount = $productPaymentAmount[$code]['upi'] + $productPaymentAmount[$code]['gpay'] +
                               $productPaymentAmount[$code]['cash'] + $productPaymentAmount[$code]['mix'];
 
                 // Skip products with no sales
@@ -448,7 +448,7 @@ class ReportController extends Controller
 
                 $sheet->setCellValueByColumnAndRow(1, $row, $code);
                 $sheet->setCellValueByColumnAndRow(2, $row, $productPaymentAmount[$code]['upi'] > 0 ? $productPaymentAmount[$code]['upi'] : '');
-                $sheet->setCellValueByColumnAndRow(3, $row, $productPaymentAmount[$code]['qr'] > 0 ? $productPaymentAmount[$code]['qr'] : '');
+                $sheet->setCellValueByColumnAndRow(3, $row, $productPaymentAmount[$code]['gpay'] > 0 ? $productPaymentAmount[$code]['gpay'] : '');
                 $sheet->setCellValueByColumnAndRow(4, $row, $productPaymentAmount[$code]['cash'] > 0 ? $productPaymentAmount[$code]['cash'] : '');
                 $sheet->setCellValueByColumnAndRow(5, $row, $productPaymentAmount[$code]['mix'] > 0 ? $productPaymentAmount[$code]['mix'] : '');
                 $sheet->setCellValueByColumnAndRow(6, $row, $totalAmount);
