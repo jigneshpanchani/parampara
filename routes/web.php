@@ -88,6 +88,7 @@ Route::middleware('auth')->group(function () {
 
         Route::resource('stocks', StockController::class);
         Route::resource('products', ProductController::class);
+        Route::patch('products/{product}/sell-price', [ProductController::class, 'updateSellPrice'])->name('products.update-sell-price');
         Route::resource('purchases', PurchaseController::class);
         Route::get('purchases/{purchase}/payment-details', [PurchaseController::class, 'getPaymentDetails'])->name('purchases.paymentDetails');
         Route::post('purchases/{purchase}/add-payment', [PurchaseController::class, 'addPayment'])->name('purchases.addPayment');

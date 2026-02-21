@@ -42,6 +42,13 @@
                             @endif
                         </td>
                         <td class="px-6 py-4 text-sm space-x-3 flex items-center">
+                            <button type="button" class="sell-price-btn text-green-600 hover:text-green-800 text-xl font-bold transition" title="Quick Update Sell Price"
+                                data-product-id="{{ $product->id }}"
+                                data-product-name="{{ $product->product_name }}"
+                                data-base-price-range="₹{{ number_format($product->base_price_min, 2) }} - ₹{{ number_format($product->base_price_max, 2) }}"
+                                data-sell-price="{{ $product->sell_price }}">
+                                ₹
+                            </button>
                             <a href="{{ route('admin.products.edit', $product) }}" class="text-blue-500 hover:text-blue-700 text-xl transition" title="Edit Product">
                                 ✏️
                             </a>
@@ -59,5 +66,125 @@
         </table>
     </div>
 @endif
+
+<!-- Sell Price Update Modal -->
+<div id="sellPriceModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
+        <div class="flex justify-between items-center mb-4">
+            <h3 id="sellPriceModalTitle" class="text-xl font-bold text-gray-800"></h3>
+            <button type="button" onclick="closeSellPriceModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+        </div>
+        <p class="text-gray-600 text-sm mb-2">Base Price Range</p>
+        <p id="sellPriceModalBaseRange" class="text-gray-800 font-semibold mb-4"></p>
+        <form id="sellPriceForm" onsubmit="updateSellPrice(event)">
+            @csrf
+            <input type="hidden" id="sellPriceProductId" name="product_id">
+            <div class="mb-4">
+                <label for="sellPriceInput" class="block text-sm font-semibold text-gray-700 mb-2">Sell Price</label>
+                <input type="number" id="sellPriceInput" name="sell_price" step="0.01" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" required>
+            </div>
+            <div id="sellPriceError" class="hidden mb-4 p-2 bg-red-50 text-red-600 text-sm rounded"></div>
+            <div id="sellPriceSuccess" class="hidden mb-4 p-2 bg-green-50 text-green-600 text-sm rounded"></div>
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeSellPriceModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition">
+                    Cancel
+                </button>
+                <button type="submit" id="sellPriceSubmitBtn" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">
+                    Update Sell Price
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openSellPriceModal(productId, productName, basePriceRange, sellPrice) {
+    document.getElementById('sellPriceModalTitle').textContent = productName;
+    document.getElementById('sellPriceModalBaseRange').textContent = basePriceRange;
+    document.getElementById('sellPriceProductId').value = productId;
+    document.getElementById('sellPriceInput').value = sellPrice;
+    document.getElementById('sellPriceError').classList.add('hidden');
+    document.getElementById('sellPriceSuccess').classList.add('hidden');
+    document.getElementById('sellPriceModal').classList.remove('hidden');
+    document.getElementById('sellPriceInput').focus();
+}
+
+function closeSellPriceModal() {
+    document.getElementById('sellPriceModal').classList.add('hidden');
+}
+
+function updateSellPrice(event) {
+    event.preventDefault();
+    const productId = document.getElementById('sellPriceProductId').value;
+    const sellPrice = document.getElementById('sellPriceInput').value;
+    const errorEl = document.getElementById('sellPriceError');
+    const successEl = document.getElementById('sellPriceSuccess');
+    const submitBtn = document.getElementById('sellPriceSubmitBtn');
+
+    errorEl.classList.add('hidden');
+    successEl.classList.add('hidden');
+    submitBtn.disabled = true;
+
+    const url = `/admin/products/${productId}/sell-price`;
+    const token = document.querySelector('#sellPriceForm input[name="_token"]').value;
+
+    fetch(url, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token,
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({ sell_price: parseFloat(sellPrice) }),
+    })
+    .then(response => response.json().then(data => ({ ok: response.ok, data })))
+    .then(({ ok, data }) => {
+        if (ok && data.success) {
+            successEl.textContent = data.message;
+            successEl.classList.remove('hidden');
+            const row = document.querySelector(`button.sell-price-btn[data-product-id="${productId}"]`)?.closest('tr');
+            if (row) {
+                const sellPriceCell = row.querySelector('td:nth-child(4)');
+                if (sellPriceCell) {
+                    sellPriceCell.textContent = '₹' + parseFloat(data.sell_price).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+                }
+            }
+            setTimeout(closeSellPriceModal, 1000);
+        } else {
+            const msg = data?.errors?.sell_price?.[0] || data?.message || 'Failed to update sell price.';
+            errorEl.textContent = msg;
+            errorEl.classList.remove('hidden');
+        }
+    })
+    .catch(() => {
+        errorEl.textContent = 'An error occurred. Please try again.';
+        errorEl.classList.remove('hidden');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+    });
+}
+
+document.querySelectorAll('.sell-price-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        openSellPriceModal(
+            this.dataset.productId,
+            this.dataset.productName,
+            this.dataset.basePriceRange,
+            this.dataset.sellPrice
+        );
+    });
+});
+
+document.getElementById('sellPriceModal')?.addEventListener('click', function(event) {
+    if (event.target === this) closeSellPriceModal();
+});
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape' && !document.getElementById('sellPriceModal').classList.contains('hidden')) {
+        closeSellPriceModal();
+    }
+});
+</script>
 @endsection
 

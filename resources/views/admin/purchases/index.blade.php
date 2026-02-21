@@ -59,6 +59,7 @@
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Total Amount</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Due Date</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Payment Status</th>
+                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Payment Method</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
                 </tr>
             </thead>
@@ -90,6 +91,17 @@
                             <span class="px-3 py-1 rounded-full text-xs font-semibold {{ $colorMap[$statusColor] ?? 'bg-gray-100 text-gray-800' }}">
                                 {{ ucfirst($paymentStatus) }}
                             </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-600">
+                            @php
+                                // Get the most recent paid payment to show its method
+                                $paidPayment = $purchase->payments()->where('payment_status', 'paid')->latest('payment_date')->first();
+                            @endphp
+                            @if($paidPayment)
+                                {{ $paidPayment->getPaymentMethodLabel() }}
+                            @else
+                                -
+                            @endif
                         </td>
                         <td class="px-6 py-4 text-sm space-x-3 flex items-center">
                             <button type="button" onclick="openPaymentModal({{ $purchase->id }})" class="text-green-500 hover:text-green-700 text-xl transition" title="Payment Details">

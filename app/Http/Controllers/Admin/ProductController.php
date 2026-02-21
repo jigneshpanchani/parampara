@@ -102,6 +102,24 @@ class ProductController extends Controller
     }
 
     /**
+     * Update only the sell price of a product.
+     */
+    public function updateSellPrice(Request $request, Product $product)
+    {
+        $validated = $request->validate([
+            'sell_price' => 'required|numeric|min:0',
+        ]);
+
+        $product->update(['sell_price' => $validated['sell_price']]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Sell price updated successfully.',
+            'sell_price' => $product->sell_price,
+        ]);
+    }
+
+    /**
      * Remove the specified resource from storage.
      */
     public function destroy(Product $product)
