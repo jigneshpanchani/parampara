@@ -3,6 +3,12 @@
 @section('title', 'Products')
 
 @section('content')
+@if ($message = session('success'))
+    <div class="mb-4 p-4 bg-green-100 text-green-700 rounded-lg">{{ $message }}</div>
+@endif
+@if ($message = session('error'))
+    <div class="mb-4 p-4 bg-red-100 text-red-700 rounded-lg">{{ $message }}</div>
+@endif
 <div class="mb-6 flex justify-between items-center">
     <h2 class="text-3xl font-bold text-gray-800">📦 Products</h2>
     <a href="{{ route('admin.products.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
@@ -23,6 +29,7 @@
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Code</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Base Price Range</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Sell Price</th>
+                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Stock</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Photo</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
                 </tr>
@@ -32,8 +39,17 @@
                     <tr class="border-b hover:bg-gray-50">
                         <td class="px-6 py-4 text-sm text-gray-900">{{ $product->product_name }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">{{ $product->product_code }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-600">₹{{ number_format($product->base_price_min, 2) }} - ₹{{ number_format($product->base_price_max, 2) }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-600">₹{{ number_format($product->sell_price, 2) }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-600">{{ $product->base_price_range_formatted }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-600 sell-price-cell">{{ $product->sell_price_formatted }}</td>
+                        <td class="px-6 py-4 text-sm">
+                            @php $status = $product->getStockStatus(); @endphp
+                            <span class="px-2 py-1 text-xs font-medium rounded-full
+                                @if($status === 'in_stock') bg-green-100 text-green-800
+                                @elseif($status === 'low_stock') bg-yellow-100 text-yellow-800
+                                @else bg-red-100 text-red-800 @endif">
+                                {{ $product->getCurrentStock() }}
+                            </span>
+                        </td>
                         <td class="px-6 py-4 text-sm">
                             @if ($product->photo)
                                 <img src="{{ asset('storage/' . $product->photo) }}" alt="{{ $product->product_name }}" class="h-10 w-10 rounded">
@@ -45,7 +61,7 @@
                             <button type="button" class="sell-price-btn text-green-600 hover:text-green-800 text-xl font-bold transition" title="Quick Update Sell Price"
                                 data-product-id="{{ $product->id }}"
                                 data-product-name="{{ $product->product_name }}"
-                                data-base-price-range="₹{{ number_format($product->base_price_min, 2) }} - ₹{{ number_format($product->base_price_max, 2) }}"
+                                data-base-price-range="{{ $product->base_price_range_formatted }}"
                                 data-sell-price="{{ $product->sell_price }}">
                                 ₹
                             </button>
@@ -145,9 +161,9 @@ function updateSellPrice(event) {
             successEl.classList.remove('hidden');
             const row = document.querySelector(`button.sell-price-btn[data-product-id="${productId}"]`)?.closest('tr');
             if (row) {
-                const sellPriceCell = row.querySelector('td:nth-child(4)');
+                const sellPriceCell = row.querySelector('.sell-price-cell');
                 if (sellPriceCell) {
-                    sellPriceCell.textContent = '₹' + parseFloat(data.sell_price).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+                    sellPriceCell.textContent = '₹' + parseFloat(data.sell_price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 }
             }
             setTimeout(closeSellPriceModal, 1000);

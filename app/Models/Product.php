@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -22,12 +23,14 @@ class Product extends Model
 
     protected $casts = [
         'stock_quantity' => 'integer',
+        'base_price_min' => 'float',
+        'base_price_max' => 'float',
+        'sell_price' => 'float',
     ];
 
-    public function sells()
-    {
-        return $this->hasMany(Sell::class);
-    }
+    /*
+     * Relationships
+     */
 
     public function purchaseItems()
     {
@@ -47,6 +50,69 @@ class Product extends Model
     public function sellReturns()
     {
         return $this->hasMany(SellReturn::class);
+    }
+
+    /**
+     * Get sells through sell items (hasManyThrough).
+     */
+    public function sells()
+    {
+        return $this->hasManyThrough(Sell::class, SellItem::class);
+    }
+
+    /*
+     * Scopes
+     */
+
+    public function scopeInStock(Builder $query, int $threshold = 10): Builder
+    {
+        return $query->where('stock_quantity', '>', $threshold);
+    }
+
+    public function scopeLowStock(Builder $query, int $threshold = 10): Builder
+    {
+        return $query->whereBetween('stock_quantity', [1, $threshold]);
+    }
+
+    public function scopeOutOfStock(Builder $query): Builder
+    {
+        return $query->where('stock_quantity', '<=', 0);
+    }
+
+    public function scopeOrderByName(Builder $query): Builder
+    {
+        return $query->orderBy('product_name');
+    }
+
+    /*
+     * Accessors & Helpers
+     */
+
+    /**
+     * Get formatted base price range.
+     */
+    public function getBasePriceRangeFormattedAttribute(): string
+    {
+        return '₹' . number_format($this->base_price_min, 2) . ' - ₹' . number_format($this->base_price_max, 2);
+    }
+
+    /**
+     * Get formatted sell price.
+     */
+    public function getSellPriceFormattedAttribute(): string
+    {
+        return '₹' . number_format($this->sell_price, 2);
+    }
+
+    /**
+     * Check if product has any transaction history.
+     */
+    public function hasTransactionHistory(): bool
+    {
+        return $this->purchaseItems()->exists()
+            || $this->sellItems()->exists()
+            || $this->purchaseReturns()->exists()
+            || $this->sellReturns()->exists();
     }
 
     /**

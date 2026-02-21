@@ -3,24 +3,35 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreProductRequest;
+use App\Http\Requests\Admin\UpdateProductRequest;
+use App\Http\Requests\Admin\UpdateSellPriceRequest;
 use App\Models\Product;
-use Illuminate\Http\Request;
+use App\Services\ProductService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class ProductController extends Controller
 {
+    public function __construct(
+        private ProductService $productService
+    ) {}
+
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(): View
     {
-        $products = Product::all();
+        $products = Product::orderByName()->get();
+
         return view('admin.products.index', compact('products'));
     }
 
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(): View
     {
         return view('admin.products.create');
     }
@@ -28,37 +39,30 @@ class ProductController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreProductRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'product_name' => 'required|string|max:255',
-            'product_code' => 'required|string|unique:products',
-            'description' => 'nullable|string',
-            'base_price_min' => 'required|numeric|min:0',
-            'base_price_max' => 'required|numeric|min:0',
-            'sell_price' => 'required|numeric|min:0',
-            'photo' => 'nullable|image|mimes:jpeg,jpg,png,gif,webp|max:5120',
-        ]);
+        $validated = $request->validated();
 
         if ($request->hasFile('photo')) {
             try {
-                $file = $request->file('photo');
-                $path = $file->store('products', 'public');
-                $validated['photo'] = $path;
+                $validated['photo'] = $this->productService->storePhoto($request->file('photo'));
             } catch (\Exception $e) {
-                return redirect()->back()->withInput()->with('error', 'Failed to upload photo: ' . $e->getMessage());
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Failed to upload photo: ' . $e->getMessage());
             }
         }
 
         Product::create($validated);
 
-        return redirect()->route('admin.products.index')->with('success', 'Product created successfully.');
+        return redirect()->route('admin.products.index')
+            ->with('success', 'Product created successfully.');
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Product $product)
+    public function show(Product $product): View
     {
         return view('admin.products.show', compact('product'));
     }
@@ -66,7 +70,7 @@ class ProductController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Product $product)
+    public function edit(Product $product): View
     {
         return view('admin.products.edit', compact('product'));
     }
@@ -74,43 +78,32 @@ class ProductController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Product $product)
+    public function update(UpdateProductRequest $request, Product $product): RedirectResponse
     {
-        $validated = $request->validate([
-            'product_name' => 'required|string|max:255',
-            'product_code' => 'required|string|unique:products,product_code,' . $product->id,
-            'description' => 'nullable|string',
-            'base_price_min' => 'required|numeric|min:0',
-            'base_price_max' => 'required|numeric|min:0',
-            'sell_price' => 'required|numeric|min:0',
-            'photo' => 'nullable|image|mimes:jpeg,jpg,png,gif,webp|max:5120',
-        ]);
+        $validated = $request->validated();
 
         if ($request->hasFile('photo')) {
             try {
-                $file = $request->file('photo');
-                $path = $file->store('products', 'public');
-                $validated['photo'] = $path;
+                $validated['photo'] = $this->productService->storePhoto($request->file('photo'));
             } catch (\Exception $e) {
-                return redirect()->back()->withInput()->with('error', 'Failed to upload photo: ' . $e->getMessage());
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Failed to upload photo: ' . $e->getMessage());
             }
         }
 
         $product->update($validated);
 
-        return redirect()->route('admin.products.index')->with('success', 'Product updated successfully.');
+        return redirect()->route('admin.products.index')
+            ->with('success', 'Product updated successfully.');
     }
 
     /**
      * Update only the sell price of a product.
      */
-    public function updateSellPrice(Request $request, Product $product)
+    public function updateSellPrice(UpdateSellPriceRequest $request, Product $product): JsonResponse
     {
-        $validated = $request->validate([
-            'sell_price' => 'required|numeric|min:0',
-        ]);
-
-        $product->update(['sell_price' => $validated['sell_price']]);
+        $product->update(['sell_price' => $request->validated('sell_price')]);
 
         return response()->json([
             'success' => true,
@@ -122,9 +115,16 @@ class ProductController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Product $product)
+    public function destroy(Product $product): RedirectResponse
     {
+        if ($product->hasTransactionHistory()) {
+            return redirect()->route('admin.products.index')
+                ->with('error', 'Cannot delete product with purchase or sale history. Consider deactivating instead.');
+        }
+
         $product->delete();
-        return redirect()->route('admin.products.index')->with('success', 'Product deleted successfully.');
+
+        return redirect()->route('admin.products.index')
+            ->with('success', 'Product deleted successfully.');
     }
 }
