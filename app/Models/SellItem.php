@@ -17,6 +17,12 @@ class SellItem extends Model
         'total_price',
     ];
 
+    protected $casts = [
+        'quantity' => 'integer',
+        'selling_price' => 'float',
+        'total_price' => 'float',
+    ];
+
     public function sell()
     {
         return $this->belongsTo(Sell::class);

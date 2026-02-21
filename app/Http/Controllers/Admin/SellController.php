@@ -3,222 +3,139 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Sell;
-use App\Models\SellItem;
+use App\Http\Requests\Admin\StoreSellRequest;
+use App\Http\Requests\Admin\UpdateSellRequest;
 use App\Models\Product;
+use App\Models\Sell;
+use App\Services\SellService;
 use App\Services\StockService;
-use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class SellController extends Controller
 {
+    public function __construct(
+        private SellService $sellService
+    ) {}
+
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(): View
     {
-        $sells = Sell::with('items.product')->orderBy('sell_date', 'desc')->paginate(20);
+        $sells = Sell::with('items.product')
+            ->orderBy('sell_date', 'desc')
+            ->paginate(20);
+
         return view('admin.sells.index', compact('sells'));
     }
 
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(): View
     {
-        $products = Product::all();
+        $products = Product::orderByName()->get();
+
         return view('admin.sells.create', compact('products'));
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreSellRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'sell_date' => 'required|date',
-            'seller_name' => 'nullable|string|max:255',
-            'seller_contact_number' => 'nullable|string|max:20',
-            'product_id' => 'required|array|min:1',
-            'product_id.*' => 'required|exists:products,id',
-            'quantity' => 'required|array|min:1',
-            'quantity.*' => 'required|integer|min:1',
-            'selling_price' => 'required|array|min:1',
-            'selling_price.*' => 'required|numeric|min:0',
-            'payment_mode' => 'required|in:cash,upi,qr,mix',
-            'amount_paid' => 'required|numeric|min:0',
-            'cash_amount' => 'nullable|numeric|min:0',
-            'online_amount' => 'nullable|numeric|min:0',
-            'notes' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
-        // Calculate total amount
-        $totalAmount = 0;
-        foreach ($validated['product_id'] as $key => $productId) {
-            $totalAmount += $validated['quantity'][$key] * $validated['selling_price'][$key];
-        }
+        $totalAmount = $this->sellService->calculateTotalAmount(
+            $validated['product_id'],
+            $validated['quantity'],
+            $validated['selling_price']
+        );
 
-        // Handle mix payment mode
-        $cashAmount = 0;
-        $onlineAmount = 0;
-        if ($validated['payment_mode'] === 'mix') {
-            $cashAmount = $validated['cash_amount'] ?? 0;
-            $onlineAmount = $validated['online_amount'] ?? 0;
-            $validated['amount_paid'] = $cashAmount + $onlineAmount;
-        }
+        $attributes = $this->sellService->buildSellAttributes($validated, $totalAmount);
+        $sell = Sell::create($attributes);
 
-        $pendingAmount = max($totalAmount - $validated['amount_paid'], 0);
-        $paymentStatus = 'pending';
-        if ($validated['amount_paid'] >= $totalAmount && $totalAmount > 0) {
-            $paymentStatus = 'paid';
-            $pendingAmount = 0;
-        } elseif ($validated['amount_paid'] > 0) {
-            $paymentStatus = 'partial';
-        }
+        $this->sellService->createSellItems(
+            $sell,
+            $validated['product_id'],
+            $validated['quantity'],
+            $validated['selling_price']
+        );
 
-        // Create sell record
-        $sell = Sell::create([
-            'sell_date' => $validated['sell_date'],
-            'seller_name' => $validated['seller_name'],
-            'seller_contact_number' => $validated['seller_contact_number'],
-            'total_amount' => $totalAmount,
-            'payment_mode' => $validated['payment_mode'],
-            'payment_status' => $paymentStatus,
-            'amount_paid' => $validated['amount_paid'],
-            'cash_amount' => $cashAmount,
-            'online_amount' => $onlineAmount,
-            'pending_amount' => $pendingAmount,
-            'notes' => $validated['notes'],
-        ]);
-
-        // Create sell items
-        foreach ($validated['product_id'] as $key => $productId) {
-            $itemTotal = $validated['quantity'][$key] * $validated['selling_price'][$key];
-            SellItem::create([
-                'sell_id' => $sell->id,
-                'product_id' => $productId,
-                'quantity' => $validated['quantity'][$key],
-                'selling_price' => $validated['selling_price'][$key],
-                'total_price' => $itemTotal,
-            ]);
-        }
-
-        // Deduct stock from sale
         StockService::deductStockFromSale($sell->items);
 
-        return redirect()->route('admin.sells.index')->with('success', 'Sale recorded successfully.');
+        return redirect()->route('admin.sells.index')
+            ->with('success', 'Sale recorded successfully.');
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Sell $sell)
+    public function show(Sell $sell): View
     {
+        $sell->load('items.product');
         return view('admin.sells.show', compact('sell'));
     }
 
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Sell $sell)
+    public function edit(Sell $sell): View
     {
-        $products = Product::all();
+        $products = Product::orderByName()->get();
         $sell->load('items.product');
+
         return view('admin.sells.edit', compact('sell', 'products'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Sell $sell)
+    public function update(UpdateSellRequest $request, Sell $sell): RedirectResponse
     {
-        $validated = $request->validate([
-            'sell_date' => 'required|date',
-            'seller_name' => 'nullable|string|max:255',
-            'seller_contact_number' => 'nullable|string|max:20',
-            'product_id' => 'required|array|min:1',
-            'product_id.*' => 'required|exists:products,id',
-            'quantity' => 'required|array|min:1',
-            'quantity.*' => 'required|integer|min:1',
-            'selling_price' => 'required|array|min:1',
-            'selling_price.*' => 'required|numeric|min:0',
-            'payment_mode' => 'required|in:cash,upi,qr,mix',
-            'amount_paid' => 'required|numeric|min:0',
-            'cash_amount' => 'nullable|numeric|min:0',
-            'online_amount' => 'nullable|numeric|min:0',
-            'notes' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
-        // Calculate total amount
-        $totalAmount = 0;
-        foreach ($validated['product_id'] as $key => $productId) {
-            $totalAmount += $validated['quantity'][$key] * $validated['selling_price'][$key];
-        }
+        $totalAmount = $this->sellService->calculateTotalAmount(
+            $validated['product_id'],
+            $validated['quantity'],
+            $validated['selling_price']
+        );
 
-        // Handle mix payment mode
-        $cashAmount = 0;
-        $onlineAmount = 0;
-        if ($validated['payment_mode'] === 'mix') {
-            $cashAmount = $validated['cash_amount'] ?? 0;
-            $onlineAmount = $validated['online_amount'] ?? 0;
-            $validated['amount_paid'] = $cashAmount + $onlineAmount;
-        }
-
-        $pendingAmount = max($totalAmount - $validated['amount_paid'], 0);
-        $paymentStatus = 'pending';
-        if ($validated['amount_paid'] >= $totalAmount && $totalAmount > 0) {
-            $paymentStatus = 'paid';
-            $pendingAmount = 0;
-        } elseif ($validated['amount_paid'] > 0) {
-            $paymentStatus = 'partial';
-        }
-
-        // Update sell record
-        $sell->update([
-            'sell_date' => $validated['sell_date'],
-            'seller_name' => $validated['seller_name'],
-            'seller_contact_number' => $validated['seller_contact_number'],
-            'total_amount' => $totalAmount,
-            'payment_mode' => $validated['payment_mode'],
-            'payment_status' => $paymentStatus,
-            'amount_paid' => $validated['amount_paid'],
-            'cash_amount' => $cashAmount,
-            'online_amount' => $onlineAmount,
-            'pending_amount' => $pendingAmount,
-            'notes' => $validated['notes'],
-        ]);
+        $attributes = $this->sellService->buildSellAttributes($validated, $totalAmount);
+        $sell->update($attributes);
 
         // Add back old stock before deleting items
         StockService::addStockBackFromSale($sell->items);
 
         // Delete old items and create new ones
         $sell->items()->delete();
-        foreach ($validated['product_id'] as $key => $productId) {
-            $itemTotal = $validated['quantity'][$key] * $validated['selling_price'][$key];
-            SellItem::create([
-                'sell_id' => $sell->id,
-                'product_id' => $productId,
-                'quantity' => $validated['quantity'][$key],
-                'selling_price' => $validated['selling_price'][$key],
-                'total_price' => $itemTotal,
-            ]);
-        }
+        $this->sellService->createSellItems(
+            $sell,
+            $validated['product_id'],
+            $validated['quantity'],
+            $validated['selling_price']
+        );
 
-        // Deduct new stock
+        // Reload items (fresh from DB) before deducting stock
+        $sell->load('items');
         StockService::deductStockFromSale($sell->items);
 
-        return redirect()->route('admin.sells.index')->with('success', 'Sale updated successfully.');
+        return redirect()->route('admin.sells.index')
+            ->with('success', 'Sale updated successfully.');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Sell $sell)
+    public function destroy(Sell $sell): RedirectResponse
     {
-        // Add back stock before deleting
         StockService::addStockBackFromSale($sell->items);
 
         $sell->items()->delete();
         $sell->delete();
-        return redirect()->route('admin.sells.index')->with('success', 'Sale deleted successfully.');
+
+        return redirect()->route('admin.sells.index')
+            ->with('success', 'Sale deleted successfully.');
     }
 }

@@ -25,6 +25,11 @@ class Sell extends Model
 
     protected $casts = [
         'sell_date' => 'date',
+        'total_amount' => 'float',
+        'amount_paid' => 'float',
+        'cash_amount' => 'float',
+        'online_amount' => 'float',
+        'pending_amount' => 'float',
     ];
 
     public function items()
@@ -35,6 +40,28 @@ class Sell extends Model
     public function returns()
     {
         return $this->hasMany(SellReturn::class);
+    }
+
+    /**
+     * Get formatted total amount.
+     */
+    public function getTotalAmountFormattedAttribute(): string
+    {
+        return '₹' . number_format($this->total_amount, 2);
+    }
+
+    /**
+     * Get payment mode label for display.
+     */
+    public function getPaymentModeLabelAttribute(): string
+    {
+        return match ($this->payment_mode) {
+            'gpay' => 'G-Pay',
+            'cash' => 'Cash',
+            'upi' => 'UPI',
+            'mix' => 'Mix',
+            default => strtoupper($this->payment_mode ?? ''),
+        };
     }
 
 }
