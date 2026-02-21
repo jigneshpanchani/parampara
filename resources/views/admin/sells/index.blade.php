@@ -3,6 +3,12 @@
 @section('title', 'Sales')
 
 @section('content')
+@if ($message = session('success'))
+    <div class="mb-4 p-4 bg-green-100 text-green-700 rounded-lg">{{ $message }}</div>
+@endif
+@if ($message = session('error'))
+    <div class="mb-4 p-4 bg-red-100 text-red-700 rounded-lg">{{ $message }}</div>
+@endif
 <div class="mb-6 flex justify-between items-center">
     <h2 class="text-3xl font-bold text-gray-800">💰 Sales</h2>
     <a href="{{ route('admin.sells.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
@@ -63,7 +69,7 @@
                         </td>
                         <td class="px-6 py-4 text-sm">
                             <span class="px-2 py-1 rounded text-xs font-semibold {{ $sell->payment_mode === 'cash' ? 'bg-blue-100 text-blue-800' : ($sell->payment_mode === 'upi' ? 'bg-purple-100 text-purple-800' : ($sell->payment_mode === 'gpay' ? 'bg-green-100 text-green-800' : 'bg-indigo-100 text-indigo-800')) }}">
-                                {{ $sell->payment_mode === 'gpay' ? 'G-PAY' : strtoupper($sell->payment_mode) }}
+                                {{ $sell->payment_mode_label }}
                             </span>
                         </td>
                         <td class="px-6 py-4 text-sm">

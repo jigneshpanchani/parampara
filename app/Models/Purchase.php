@@ -25,6 +25,9 @@ class Purchase extends Model
     protected $casts = [
         'purchase_date' => 'date',
         'bill_due_date' => 'date',
+        'transportation_cost' => 'float',
+        'total_amount' => 'float',
+        'expense' => 'float',
     ];
 
     public function items()
@@ -117,6 +120,18 @@ class Purchase extends Model
             'partial' => 'blue',
             'pending' => 'yellow',
             default => 'gray',
+        };
+    }
+
+    /**
+     * Get bill type label for display.
+     */
+    public function getBillTypeLabelAttribute(): string
+    {
+        return match ($this->bill_type ?? '') {
+            'gst' => 'GST',
+            'without_gst' => 'Without GST',
+            default => ucfirst($this->bill_type ?? ''),
         };
     }
 }

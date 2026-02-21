@@ -3,28 +3,34 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Purchase;
+use App\Http\Requests\Admin\AddPurchasePaymentRequest;
+use App\Http\Requests\Admin\StorePurchaseRequest;
+use App\Http\Requests\Admin\UpdatePurchaseRequest;
 use App\Models\Product;
+use App\Models\Purchase;
+use App\Services\PurchaseService;
 use App\Services\StockService;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class PurchaseController extends Controller
 {
+    public function __construct(
+        private PurchaseService $purchaseService
+    ) {}
+
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(): View
     {
-        // Get all purchases sorted by date descending
         $purchases = Purchase::with('items', 'payments')
             ->orderBy('purchase_date', 'desc')
             ->get();
 
-        // Calculate dashboard statistics
         $totalPurchases = $purchases->sum('total_amount');
-        $totalPaid = $purchases->sum(function ($purchase) {
-            return $purchase->getTotalPaidAmount();
-        });
+        $totalPaid = $purchases->sum(fn ($purchase) => $purchase->getTotalPaidAmount());
         $totalPending = $totalPurchases - $totalPaid;
 
         return view('admin.purchases.index', compact('purchases', 'totalPurchases', 'totalPaid', 'totalPending'));
@@ -33,69 +39,40 @@ class PurchaseController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(): View
     {
-        $products = Product::all();
+        $products = Product::orderByName()->get();
+
         return view('admin.purchases.create', compact('products'));
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StorePurchaseRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'purchase_date' => 'required|date',
-            'supplier_name' => 'required|string|max:255',
-            'bill_type' => 'required|in:gst,without_gst',
-            'bill_details' => 'nullable|string',
-            'transportation_cost' => 'nullable|numeric|min:0',
-            'bill_due_date' => 'nullable|date',
-            'expense' => 'nullable|numeric|min:0',
-            'expense_details' => 'nullable|string',
-            'products' => 'required|array',
-            'products.*.product_id' => 'required|exists:products,id',
-            'products.*.quantity' => 'required|integer|min:1',
-            'products.*.purchase_price' => 'required|numeric|min:0',
-        ]);
+        $validated = $request->validated();
 
-        $totalAmount = 0;
-        foreach ($validated['products'] as $product) {
-            $totalAmount += $product['quantity'] * $product['purchase_price'];
-        }
-        $totalAmount += $validated['transportation_cost'] ?? 0;
+        $totalAmount = $this->purchaseService->calculateTotalFromProducts(
+            $validated['products'],
+            (float) ($validated['transportation_cost'] ?? 0)
+        );
 
-        $purchase = Purchase::create([
-            'purchase_date' => $validated['purchase_date'],
-            'supplier_name' => $validated['supplier_name'],
-            'bill_type' => $validated['bill_type'],
-            'bill_details' => $validated['bill_details'],
-            'transportation_cost' => $validated['transportation_cost'] ?? 0,
-            'bill_due_date' => $validated['bill_due_date'],
-            'total_amount' => $totalAmount,
-            'expense' => $validated['expense'] ?? 0,
-            'expense_details' => $validated['expense_details'],
-        ]);
+        $attributes = $this->purchaseService->buildStoreAttributes($validated, $totalAmount);
+        $purchase = Purchase::create($attributes);
 
-        foreach ($validated['products'] as $product) {
-            $purchase->items()->create([
-                'product_id' => $product['product_id'],
-                'quantity' => $product['quantity'],
-                'purchase_price' => $product['purchase_price'],
-                'total_price' => $product['quantity'] * $product['purchase_price'],
-            ]);
-        }
+        $this->purchaseService->createItemsFromProducts($purchase, $validated['products']);
 
-        // Add stock from purchase
         StockService::addStockFromPurchase($purchase->items);
 
-        return redirect()->route('admin.purchases.index')->with('success', 'Purchase created successfully.');
+        return redirect()->route('admin.purchases.index')
+            ->with('success', 'Purchase created successfully.');
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Purchase $purchase)
+    public function show(Purchase $purchase): View
     {
         return view('admin.purchases.show', compact('purchase'));
     }
@@ -103,111 +80,84 @@ class PurchaseController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Purchase $purchase)
+    public function edit(Purchase $purchase): View
     {
-        $products = Product::all();
+        $products = Product::orderByName()->get();
         $purchase->load('items.product');
+
         return view('admin.purchases.edit', compact('purchase', 'products'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Purchase $purchase)
+    public function update(UpdatePurchaseRequest $request, Purchase $purchase): RedirectResponse
     {
-        $validated = $request->validate([
-            'purchase_date' => 'required|date',
-            'supplier_name' => 'required|string|max:255',
-            'bill_type' => 'required|in:gst,without_gst',
-            'bill_details' => 'nullable|string',
-            'transportation_cost' => 'nullable|numeric|min:0',
-            'bill_due_date' => 'nullable|date',
-            'expense' => 'nullable|numeric|min:0',
-            'expense_details' => 'nullable|string',
-            'product_id' => 'required|array|min:1',
-            'product_id.*' => 'required|exists:products,id',
-            'quantity' => 'required|array|min:1',
-            'quantity.*' => 'required|integer|min:1',
-            'purchase_price' => 'required|array|min:1',
-            'purchase_price.*' => 'required|numeric|min:0',
-        ]);
+        $validated = $request->validated();
 
-        // Calculate total amount
-        $totalAmount = 0;
-        foreach ($validated['product_id'] as $key => $productId) {
-            $totalAmount += $validated['quantity'][$key] * $validated['purchase_price'][$key];
-        }
-        $totalAmount += $validated['transportation_cost'] ?? 0;
+        $totalAmount = $this->purchaseService->calculateTotalFromArrays(
+            $validated['product_id'],
+            $validated['quantity'],
+            $validated['purchase_price'],
+            (float) ($validated['transportation_cost'] ?? 0)
+        );
 
-        // Update purchase
-        $purchase->update([
-            'purchase_date' => $validated['purchase_date'],
-            'supplier_name' => $validated['supplier_name'],
-            'bill_type' => $validated['bill_type'],
-            'bill_details' => $validated['bill_details'],
-            'transportation_cost' => $validated['transportation_cost'] ?? 0,
-            'bill_due_date' => $validated['bill_due_date'],
-            'expense' => $validated['expense'] ?? 0,
-            'expense_details' => $validated['expense_details'],
-            'total_amount' => $totalAmount,
-        ]);
+        $attributes = $this->purchaseService->buildUpdateAttributes($validated, $totalAmount);
+        $purchase->update($attributes);
 
-        // Remove old stock before deleting items
         StockService::removeStockFromPurchase($purchase->items);
 
-        // Delete existing items and create new ones
         $purchase->items()->delete();
-        foreach ($validated['product_id'] as $key => $productId) {
-            $purchase->items()->create([
-                'product_id' => $productId,
-                'quantity' => $validated['quantity'][$key],
-                'purchase_price' => $validated['purchase_price'][$key],
-                'total_price' => $validated['quantity'][$key] * $validated['purchase_price'][$key],
-            ]);
-        }
+        $this->purchaseService->createItemsFromArrays(
+            $purchase,
+            $validated['product_id'],
+            $validated['quantity'],
+            $validated['purchase_price']
+        );
 
-        // Add new stock
+        $purchase->load('items');
         StockService::addStockFromPurchase($purchase->items);
 
-        return redirect()->route('admin.purchases.index')->with('success', 'Purchase updated successfully.');
+        return redirect()->route('admin.purchases.index')
+            ->with('success', 'Purchase updated successfully.');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Purchase $purchase)
+    public function destroy(Purchase $purchase): RedirectResponse
     {
-        // Remove stock before deleting
         StockService::removeStockFromPurchase($purchase->items);
 
         $purchase->items()->delete();
         $purchase->delete();
-        return redirect()->route('admin.purchases.index')->with('success', 'Purchase deleted successfully.');
+
+        return redirect()->route('admin.purchases.index')
+            ->with('success', 'Purchase deleted successfully.');
     }
 
-    public function getPaymentDetails(Purchase $purchase)
+    /**
+     * Get payment details for a purchase (JSON).
+     */
+    public function getPaymentDetails(Purchase $purchase): JsonResponse
     {
         $purchase->load('items.product', 'payments');
 
-        $items = $purchase->items->map(function ($item) {
-            return [
-                'product_name' => $item->product->product_name,
-                'quantity' => $item->quantity,
-                'purchase_price' => number_format($item->purchase_price, 2),
-                'total_price' => number_format($item->total_price, 2),
-            ];
-        });
+        $items = $purchase->items->map(fn ($item) => [
+            'product_name' => $item->product->product_name,
+            'quantity' => $item->quantity,
+            'purchase_price' => number_format($item->purchase_price, 2),
+            'total_price' => number_format($item->total_price, 2),
+        ]);
 
-        $payments = $purchase->payments->map(function ($payment) {
-            return [
-                'payment_date' => $payment->payment_date->format('d M Y'),
-                'amount' => number_format($payment->amount, 2),
-                'payment_method' => $payment->getPaymentMethodLabel(),
-                'payment_status' => ucfirst($payment->payment_status),
-                'reference_number' => $payment->reference_number ?? '-',
-                'notes' => $payment->notes ?? '-',
-            ];
-        });
+        $payments = $purchase->payments->map(fn ($payment) => [
+            'payment_date' => $payment->payment_date->format('d M Y'),
+            'amount' => number_format($payment->amount, 2),
+            'payment_method' => $payment->getPaymentMethodLabel(),
+            'payment_status' => ucfirst($payment->payment_status),
+            'reference_number' => $payment->reference_number ?? '-',
+            'notes' => $payment->notes ?? '-',
+        ]);
 
         return response()->json([
             'success' => true,
@@ -230,24 +180,18 @@ class PurchaseController extends Controller
     }
 
     /**
-     * Add payment for a purchase
+     * Add payment for a purchase.
      */
-    public function addPayment(Request $request, Purchase $purchase)
+    public function addPayment(AddPurchasePaymentRequest $request, Purchase $purchase): JsonResponse
     {
-        $validated = $request->validate([
-            'payment_date' => 'required|date',
-            'amount' => 'required|numeric|min:0.01',
-            'payment_method' => 'required|in:cash,cheque,bank_transfer,credit_card,other',
-            'reference_number' => 'nullable|string|max:255',
-            'notes' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         $payment = $purchase->payments()->create([
             'payment_date' => $validated['payment_date'],
             'amount' => $validated['amount'],
             'payment_method' => $validated['payment_method'],
-            'reference_number' => $validated['reference_number'],
-            'notes' => $validated['notes'],
+            'reference_number' => $validated['reference_number'] ?? null,
+            'notes' => $validated['notes'] ?? null,
             'payment_status' => 'paid',
         ]);
 
@@ -262,8 +206,8 @@ class PurchaseController extends Controller
                 'reference_number' => $payment->reference_number ?? '-',
                 'notes' => $payment->notes ?? '-',
             ],
-            'total_paid' => number_format($purchase->getTotalPaidAmount() + $validated['amount'], 2),
-            'remaining_amount' => number_format($purchase->getRemainingAmount() - $validated['amount'], 2),
+            'total_paid' => number_format($purchase->getTotalPaidAmount(), 2),
+            'remaining_amount' => number_format($purchase->getRemainingAmount(), 2),
         ]);
     }
 }

@@ -17,6 +17,12 @@ class PurchaseItem extends Model
         'total_price',
     ];
 
+    protected $casts = [
+        'quantity' => 'integer',
+        'purchase_price' => 'float',
+        'total_price' => 'float',
+    ];
+
     public function purchase()
     {
         return $this->belongsTo(Purchase::class);
