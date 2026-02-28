@@ -50,7 +50,7 @@
 </div>
 
 <!-- Summary Cards -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
     <div class="bg-white rounded-lg shadow p-6">
         <p class="text-gray-600 text-sm font-semibold">💵 Total Cash Sales</p>
         <p class="text-3xl font-bold text-blue-600">₹{{ number_format($cashSales, 2) }}</p>
@@ -84,6 +84,10 @@
         <p class="text-gray-600 text-sm font-semibold">💰 Total Sales</p>
         <p class="text-3xl font-bold text-green-600">₹{{ number_format($totalSales, 2) }}</p>
     </div>
+    <div class="bg-white rounded-lg shadow p-6">
+        <p class="text-gray-600 text-sm font-semibold">🧾 Total Expenses</p>
+        <p class="text-3xl font-bold text-red-600">₹{{ number_format($totalExpenses, 2) }}</p>
+    </div>
 </div>
 
 <!-- Sales Table -->
@@ -105,7 +109,7 @@
                 @foreach($sell->items as $item)
                     <tr class="border-b hover:bg-gray-50">
                         <td class="px-6 py-4 text-sm text-gray-900">{{ $sell->sell_date->format('d M Y') }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-600">{{ $item->product->product_name }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-600">{{ $item->product?->product_name ?? 'Deleted Product' }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">{{ $item->quantity }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">₹{{ number_format($item->selling_price, 2) }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">₹{{ number_format($item->total_price, 2) }}</td>

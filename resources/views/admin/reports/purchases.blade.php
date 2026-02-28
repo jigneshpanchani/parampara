@@ -49,18 +49,19 @@
                     <td class="px-6 py-4 text-sm font-semibold text-gray-900">₹{{ number_format($purchase->total_amount, 2) }}</td>
                     <td class="px-6 py-4 text-sm text-gray-600">{{ $purchase->bill_due_date ? $purchase->bill_due_date->format('d M Y') : '-' }}</td>
                     <td class="px-6 py-4 text-sm">
-                        <span class="px-2 py-1 rounded text-xs font-semibold {{ $purchase->status === 'completed' ? 'bg-green-100 text-green-800' : ($purchase->status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') }}">
-                            {{ ucfirst($purchase->status) }}
+                        @php $payStatus = $purchase->getPaymentStatus(); @endphp
+                        <span class="px-2 py-1 rounded text-xs font-semibold {{ $payStatus === 'paid' ? 'bg-green-100 text-green-800' : ($payStatus === 'partial' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800') }}">
+                            {{ ucfirst($payStatus) }}
                         </span>
                     </td>
                 </tr>
                 @if ($purchase->items->count() > 0)
                     <tr class="bg-gray-50">
-                        <td colspan="9" class="px-6 py-3">
+                        <td colspan="8" class="px-6 py-3">
                             <div class="text-sm">
                                 <strong>Items:</strong>
                                 @foreach ($purchase->items as $item)
-                                    <div class="ml-4">{{ $item->product->product_name }} - {{ $item->quantity }} × ₹{{ number_format($item->purchase_price, 2) }} = ₹{{ number_format($item->total_price, 2) }}</div>
+                                    <div class="ml-4">{{ $item->product?->product_name ?? 'Deleted Product' }} - {{ $item->quantity }} × ₹{{ number_format($item->purchase_price, 2) }} = ₹{{ number_format($item->total_price, 2) }}</div>
                                 @endforeach
                             </div>
                         </td>
@@ -68,7 +69,7 @@
                 @endif
             @empty
                 <tr>
-                    <td colspan="9" class="px-6 py-4 text-center text-gray-600">No purchases found</td>
+                    <td colspan="8" class="px-6 py-4 text-center text-gray-600">No purchases found</td>
                 </tr>
             @endforelse
         </tbody>

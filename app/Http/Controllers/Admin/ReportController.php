@@ -77,7 +77,7 @@ class ReportController extends Controller
         $quantityByProduct = [];
         foreach ($sells as $sell) {
             foreach ($sell->items as $item) {
-                $productCode = $item->product->product_code;
+                $productCode = $item->product?->product_code ?? 'Unknown';
                 if (!isset($quantityByProduct[$productCode])) {
                     $quantityByProduct[$productCode] = 0;
                 }
@@ -110,7 +110,7 @@ class ReportController extends Controller
      */
     public function purchases()
     {
-        $purchases = Purchase::with('items')->get();
+        $purchases = Purchase::with('items.product')->latest()->get();
         $totalPurchases = $purchases->sum('total_amount');
         $totalItems = $purchases->flatMap->items->count();
 
@@ -222,8 +222,8 @@ class ReportController extends Controller
                     }
 
                     foreach ($sell->items as $item) {
-                        $code = $item->product->product_code;
-                        if (isset($productQtys[$code])) {
+                        $code = $item->product?->product_code ?? '';
+                        if ($code && isset($productQtys[$code])) {
                             $productQtys[$code] += $item->quantity;
                         }
                     }
@@ -272,7 +272,7 @@ class ReportController extends Controller
                 $returnDetails = '';
                 foreach ($dateSells as $sell) {
                     foreach ($sell->returns as $return) {
-                        $returnDetails .= $return->product->product_code . ': ' . $return->quantity . '; ';
+                        $returnDetails .= ($return->product?->product_code ?? 'N/A') . ': ' . $return->quantity . '; ';
                     }
                 }
                 $sheet->setCellValueByColumnAndRow($returnDetailsCol, $row, trim($returnDetails));
@@ -362,10 +362,10 @@ class ReportController extends Controller
             // Aggregate data by product and payment mode
             foreach ($sells as $sell) {
                 foreach ($sell->items as $item) {
-                    $code = $item->product->product_code;
+                    $code = $item->product?->product_code ?? '';
                     $paymentMode = $sell->payment_mode;
 
-                    if (isset($productPaymentQty[$code][$paymentMode])) {
+                    if ($code && isset($productPaymentQty[$code][$paymentMode])) {
                         $productPaymentQty[$code][$paymentMode] += $item->quantity;
                         $productPaymentAmount[$code][$paymentMode] += $item->total_price;
                     }
