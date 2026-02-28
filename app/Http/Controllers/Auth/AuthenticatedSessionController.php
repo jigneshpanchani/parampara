@@ -39,9 +39,12 @@ class AuthenticatedSessionController extends Controller
 
     /**
      * Destroy an authenticated session.
+     * Triggers a full DB backup in the background before logging out.
      */
     public function destroy(Request $request): RedirectResponse
     {
+        $this->triggerBackgroundDbBackup();
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
@@ -49,5 +52,20 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/');
+    }
+
+    /**
+     * Fire off db:backup artisan command in a detached background process.
+     * Saves to D:\parampara\DB-Backup\ without blocking the logout response.
+     */
+    private function triggerBackgroundDbBackup(): void
+    {
+        $phpBinary = PHP_BINARY;
+        $artisan   = base_path('artisan');
+
+        // Windows: start /b launches a detached process — logout is not delayed
+        $cmd = "start \"\" /b \"{$phpBinary}\" \"{$artisan}\" db:backup";
+
+        popen($cmd, 'r');
     }
 }

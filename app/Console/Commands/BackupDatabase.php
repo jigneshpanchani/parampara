@@ -3,19 +3,16 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
-use DB;
 use File;
 use ZipArchive;
 
 class BackupDatabase extends Command
 {
-    // Define the retention period in days as a constant
-    const BACKUP_RETENTION_DAYS = 30; //Backups older than 30 days
+    const BACKUP_RETENTION_DAYS = 30;
 
     protected $signature = 'db:backup';
-    protected $description = 'Backup the database, compress it, and delete backups older than 7 days';
+    protected $description = 'Backup the full database, compress to ZIP, save to D:->etc->Batsal->Parampara->DB Backup';
 
     public function __construct()
     {
@@ -24,79 +21,78 @@ class BackupDatabase extends Command
 
     public function handle()
     {
-        // Define the backup path and filename
-        $backupPath = storage_path('app/db-backups/');
-        $filename = 'backup_' . Carbon::now()->format('Ymd_His') . '.sql';
-        $backupFile = $backupPath . $filename;
+        $backupPath = 'D:\\etc\\Batsal\\Parampara\\DB Backup\\';
 
-        $zipFilename = 'backup_' . Carbon::now()->format('Ymd_His') . '.zip';
-        $zipFile = $backupPath . $zipFilename;
+        $database = config('database.connections.mysql.database');
+        $username = config('database.connections.mysql.username');
+        $password = config('database.connections.mysql.password');
+        $host     = config('database.connections.mysql.host');
+        $port     = config('database.connections.mysql.port', 3306);
 
-        // Ensure the backup directory exists
+        $baseName   = $database . '__' . Carbon::now()->format('Y-m-d_H-i-s');
+        $sqlFile    = $backupPath . $baseName . '.sql';
+        $zipFile    = $backupPath . $baseName . '.zip';
+
+        // Ensure backup directory exists
         if (!File::exists($backupPath)) {
             File::makeDirectory($backupPath, 0755, true);
         }
 
-        // Database connection details from config
-        $database = config('database.connections.mysql.database');
-        $username = config('database.connections.mysql.username');
-        $password = config('database.connections.mysql.password');
-        $host = config('database.connections.mysql.host');
-
-        // Run the mysqldump command to create a backup
-        //$mysqldumpPath = 'C:\Program Files\MySQL\MySQL Server 8.0\bin\mysqldump.exe'; // Full path to mysqldump.exe
         $mysqldumpPath = env('MYSQL_DUMP_PATH', 'D:\xammp8.1\mysql\bin\mysqldump.exe');
-        $command = "\"{$mysqldumpPath}\" --user={$username} --password={$password} --host={$host} {$database} > \"{$backupFile}\"";
-        $result = null;
+        $passwordArg   = $password !== '' ? "--password={$password}" : '--password=';
 
-        try {
-            exec($command, $output, $result);
+        // Full dump — all tables, routines, triggers, events
+        $command = "\"{$mysqldumpPath}\""
+            . " --host={$host}"
+            . " --port={$port}"
+            . " --user={$username}"
+            . " {$passwordArg}"
+            . " --single-transaction"
+            . " --routines"
+            . " --triggers"
+            . " --events"
+            . " --complete-insert"
+            . " --add-drop-table"
+            . " {$database}"
+            . " > \"{$sqlFile}\"";
 
-            if ($result === 0) {
-                $this->info('Backup created successfully: ' . $filename);
+        exec($command, $output, $result);
 
-                // Compress the backup file
-                if ($this->compressBackup($backupFile, $zipFile)) {
-                    $this->info('Backup compressed successfully: ' . $zipFilename);
-
-                    // Delete the original .sql file after compression
-                    File::delete($backupFile);
-                    $this->info('Original SQL file deleted after compression: ' . $filename);
-                } else {
-                    $this->error('Failed to compress the backup file.');
-                }
-            } else {
-                $this->error('Failed to create backup.');
-            }
-
-        } catch (\Exception $e) {
-            $this->error('Error during backup: ' . $e->getMessage());
+        if ($result !== 0) {
+            $this->error("mysqldump failed for database: {$database}");
+            return;
         }
 
-        // Delete backups older than the retention period
+        $this->info("SQL dump created: {$sqlFile}");
+
+        // Compress to ZIP
+        if ($this->compressToZip($sqlFile, $zipFile)) {
+            File::delete($sqlFile); // remove raw .sql to save space
+            $this->info("Compressed to ZIP: {$zipFile}");
+        } else {
+            $this->error("ZIP compression failed. Raw SQL kept: {$sqlFile}");
+        }
+
         $this->deleteOldBackups($backupPath);
     }
 
-    // Compress the SQL file to ZIP
-    private function compressBackup($filePath, $zipFilePath)
+    private function compressToZip(string $sqlFile, string $zipFile): bool
     {
         $zip = new ZipArchive();
 
-        if ($zip->open($zipFilePath, ZipArchive::CREATE) === TRUE) {
-            $zip->addFile($filePath, basename($filePath)); // Add SQL file to the zip
-            $zip->close();
-            return true;
+        if ($zip->open($zipFile, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            return false;
         }
 
-        return false;
+        $zip->addFile($sqlFile, basename($sqlFile));
+        $zip->close();
+
+        return File::exists($zipFile);
     }
 
-    private function deleteOldBackups($backupPath)
+    private function deleteOldBackups(string $backupPath)
     {
-        $files = File::files($backupPath);
-
-        foreach ($files as $file) {
-            // Compare file's last modified time with the retention period
+        foreach (File::files($backupPath) as $file) {
             if (Carbon::parse(File::lastModified($file))->lt(Carbon::now()->subDays(self::BACKUP_RETENTION_DAYS))) {
                 File::delete($file);
                 $this->info('Deleted old backup: ' . $file->getFilename());

@@ -21,26 +21,23 @@ class SettingsController extends Controller
     }
 
     /**
-     * Download database backup
+     * Download the most recent database backup (ZIP) from D:\etc\Batsal\Parampara\DB Backup\
      */
     public function downloadDbBackup()
     {
-        // Path to the DB backup directory
-        $backupPath = 'D:\\etc\\Batsal\\Parampara\\DB Backup';
+        $backupPath = 'D:\\etc\\Batsal\\Parampara\\DB Backup\\';
 
-        // Check if directory exists
         if (!File::exists($backupPath)) {
             return redirect()->back()->with('error', 'Backup directory not found: ' . $backupPath);
         }
 
-        // Get all files in the backup directory
         $files = File::files($backupPath);
 
         if (empty($files)) {
-            return redirect()->back()->with('error', 'No backup files found in the directory.');
+            return redirect()->back()->with('error', 'No backup files found. Please trigger a backup first.');
         }
 
-        // Get the most recent file
+        // Get the most recently modified file
         $latestFile = null;
         $latestTime = 0;
 
@@ -56,14 +53,8 @@ class SettingsController extends Controller
             return redirect()->back()->with('error', 'Could not determine the latest backup file.');
         }
 
-        // Generate filename with date suffix in format: originalFilename_ddmmyyyy.extension
-        $originalName = pathinfo($latestFile, PATHINFO_FILENAME);
-        $extension = pathinfo($latestFile, PATHINFO_EXTENSION);
-        $dateSuffix = date('dmY'); // Format: ddmmyyyy (e.g., 24012026)
-        $downloadName = $originalName . '_' . $dateSuffix . '.' . $extension;
-
-        // Download the file with new name
-        return response()->download($latestFile, $downloadName);
+        // Download using the original filename (already has DB_name__date format)
+        return response()->download($latestFile->getPathname(), $latestFile->getFilename());
     }
 
     /**
