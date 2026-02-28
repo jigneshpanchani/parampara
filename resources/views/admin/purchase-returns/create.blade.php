@@ -1,8 +1,10 @@
 @extends('layouts.admin')
 
+@section('title', 'Add Purchase Return')
+
 @section('content')
 <div class="container mx-auto px-4 py-8">
-    <div class="max-w-6xl mx-autoo">
+    <div class="max-w-6xl mx-auto">
         <h1 class="text-3xl font-bold text-gray-900 mb-6">Add Purchase Return</h1>
 
         @if ($errors->any())
@@ -25,7 +27,7 @@
                     <select id="purchase_id" name="purchase_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                         <option value="">Select a purchase</option>
                         @foreach ($purchases as $purchase)
-                            <option value="{{ $purchase->id }}">{{ $purchase->supplier_name }} - {{ $purchase->purchase_date->format('d M Y') }}</option>
+                            <option value="{{ $purchase->id }}" {{ old('purchase_id') == $purchase->id ? 'selected' : '' }}>{{ $purchase->supplier_name }} - {{ $purchase->purchase_date->format('d M Y') }}</option>
                         @endforeach
                     </select>
                     @error('purchase_id')
@@ -38,7 +40,7 @@
                     <select id="product_id" name="product_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                         <option value="">Select a product</option>
                         @foreach ($products as $product)
-                            <option value="{{ $product->id }}">{{ $product->product_name }}</option>
+                            <option value="{{ $product->id }}" {{ old('product_id') == $product->id ? 'selected' : '' }}>{{ $product->product_name }}</option>
                         @endforeach
                     </select>
                     @error('product_id')
@@ -51,7 +53,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                     <label for="return_date" class="block text-sm font-semibold text-gray-700 mb-2">Return Date</label>
-                    <input type="date" id="return_date" name="return_date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required value="{{ old('return_date') }}">
+                    <input type="date" id="return_date" name="return_date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required value="{{ old('return_date', date('Y-m-d')) }}">
                     @error('return_date')
                         <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
@@ -106,4 +108,3 @@
     </div>
 </div>
 @endsection
-

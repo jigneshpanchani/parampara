@@ -25,6 +25,7 @@
         <table class="w-full">
             <thead class="bg-gray-100 border-b">
                 <tr>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">#</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Product Name</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Code</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Base Price Range</th>
@@ -35,8 +36,9 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach ($products as $product)
+                @foreach ($products as $index => $product)
                     <tr class="border-b hover:bg-gray-50">
+                        <td class="px-4 py-4 text-sm text-gray-400">{{ $index + 1 }}</td>
                         <td class="px-6 py-4 text-sm text-gray-900">{{ $product->product_name }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">{{ $product->product_code }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">{{ $product->base_price_range_formatted }}</td>
@@ -52,7 +54,7 @@
                         </td>
                         <td class="px-6 py-4 text-sm">
                             @if ($product->photo)
-                                <img src="{{ asset('storage/' . $product->photo) }}" alt="{{ $product->product_name }}" class="h-10 w-10 rounded">
+                                <img src="{{ asset('storage/' . $product->photo) }}" alt="{{ $product->product_name }}" class="h-10 w-10 rounded object-cover">
                             @else
                                 <span class="text-gray-400">No photo</span>
                             @endif
@@ -65,6 +67,9 @@
                                 data-sell-price="{{ $product->sell_price }}">
                                 ₹
                             </button>
+                            <a href="{{ route('admin.products.show', $product) }}" class="text-gray-500 hover:text-gray-700 text-xl transition" title="View Product">
+                                👁️
+                            </a>
                             <a href="{{ route('admin.products.edit', $product) }}" class="text-blue-500 hover:text-blue-700 text-xl transition" title="Edit Product">
                                 ✏️
                             </a>

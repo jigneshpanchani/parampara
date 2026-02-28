@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Services\ProductService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class ProductController extends Controller
@@ -84,6 +85,10 @@ class ProductController extends Controller
 
         if ($request->hasFile('photo')) {
             try {
+                // Delete old photo before storing new one
+                if ($product->photo) {
+                    Storage::disk('public')->delete($product->photo);
+                }
                 $validated['photo'] = $this->productService->storePhoto($request->file('photo'));
             } catch (\Exception $e) {
                 return redirect()->back()
@@ -120,6 +125,11 @@ class ProductController extends Controller
         if ($product->hasTransactionHistory()) {
             return redirect()->route('admin.products.index')
                 ->with('error', 'Cannot delete product with purchase or sale history. Consider deactivating instead.');
+        }
+
+        // Delete photo from storage before removing the record
+        if ($product->photo) {
+            Storage::disk('public')->delete($product->photo);
         }
 
         $product->delete();

@@ -12,6 +12,7 @@ use App\Services\PurchaseService;
 use App\Services\StockService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class PurchaseController extends Controller
@@ -30,10 +31,27 @@ class PurchaseController extends Controller
             ->get();
 
         $totalPurchases = $purchases->sum('total_amount');
-        $totalPaid = $purchases->sum(fn ($purchase) => $purchase->getTotalPaidAmount());
-        $totalPending = $totalPurchases - $totalPaid;
+        $totalPaid      = $purchases->sum(fn ($p) => $p->getTotalPaidAmount());
+        $totalPending   = $totalPurchases - $totalPaid;
 
-        return view('admin.purchases.index', compact('purchases', 'totalPurchases', 'totalPaid', 'totalPending'));
+        // Split by bill type
+        $gstPurchases    = $purchases->where('bill_type', 'gst');
+        $nonGstPurchases = $purchases->where('bill_type', 'without_gst');
+
+        $gstTotal   = $gstPurchases->sum('total_amount');
+        $gstPaid    = $gstPurchases->sum(fn ($p) => $p->getTotalPaidAmount());
+        $gstPending = $gstTotal - $gstPaid;
+
+        $nonGstTotal   = $nonGstPurchases->sum('total_amount');
+        $nonGstPaid    = $nonGstPurchases->sum(fn ($p) => $p->getTotalPaidAmount());
+        $nonGstPending = $nonGstTotal - $nonGstPaid;
+
+        return view('admin.purchases.index', compact(
+            'purchases',
+            'totalPurchases', 'totalPaid', 'totalPending',
+            'gstTotal', 'gstPaid', 'gstPending',
+            'nonGstTotal', 'nonGstPaid', 'nonGstPending'
+        ));
     }
 
     /**
@@ -53,17 +71,19 @@ class PurchaseController extends Controller
     {
         $validated = $request->validated();
 
-        $totalAmount = $this->purchaseService->calculateTotalFromProducts(
-            $validated['products'],
-            (float) ($validated['transportation_cost'] ?? 0)
-        );
+        DB::transaction(function () use ($validated) {
+            $totalAmount = $this->purchaseService->calculateTotalFromProducts(
+                $validated['products'],
+                (float) ($validated['transportation_cost'] ?? 0)
+            );
 
-        $attributes = $this->purchaseService->buildStoreAttributes($validated, $totalAmount);
-        $purchase = Purchase::create($attributes);
+            $attributes = $this->purchaseService->buildStoreAttributes($validated, $totalAmount);
+            $purchase = Purchase::create($attributes);
 
-        $this->purchaseService->createItemsFromProducts($purchase, $validated['products']);
+            $this->purchaseService->createItemsFromProducts($purchase, $validated['products']);
 
-        StockService::addStockFromPurchase($purchase->items);
+            StockService::addStockFromPurchase($purchase->items);
+        });
 
         return redirect()->route('admin.purchases.index')
             ->with('success', 'Purchase created successfully.');
@@ -74,6 +94,8 @@ class PurchaseController extends Controller
      */
     public function show(Purchase $purchase): View
     {
+        $purchase->load('items.product', 'payments');
+
         return view('admin.purchases.show', compact('purchase'));
     }
 
@@ -95,28 +117,30 @@ class PurchaseController extends Controller
     {
         $validated = $request->validated();
 
-        $totalAmount = $this->purchaseService->calculateTotalFromArrays(
-            $validated['product_id'],
-            $validated['quantity'],
-            $validated['purchase_price'],
-            (float) ($validated['transportation_cost'] ?? 0)
-        );
+        DB::transaction(function () use ($validated, $purchase) {
+            $totalAmount = $this->purchaseService->calculateTotalFromArrays(
+                $validated['product_id'],
+                $validated['quantity'],
+                $validated['purchase_price'],
+                (float) ($validated['transportation_cost'] ?? 0)
+            );
 
-        $attributes = $this->purchaseService->buildUpdateAttributes($validated, $totalAmount);
-        $purchase->update($attributes);
+            $attributes = $this->purchaseService->buildUpdateAttributes($validated, $totalAmount);
+            $purchase->update($attributes);
 
-        StockService::removeStockFromPurchase($purchase->items);
+            StockService::removeStockFromPurchase($purchase->items);
 
-        $purchase->items()->delete();
-        $this->purchaseService->createItemsFromArrays(
-            $purchase,
-            $validated['product_id'],
-            $validated['quantity'],
-            $validated['purchase_price']
-        );
+            $purchase->items()->delete();
+            $this->purchaseService->createItemsFromArrays(
+                $purchase,
+                $validated['product_id'],
+                $validated['quantity'],
+                $validated['purchase_price']
+            );
 
-        $purchase->load('items');
-        StockService::addStockFromPurchase($purchase->items);
+            $purchase->load('items');
+            StockService::addStockFromPurchase($purchase->items);
+        });
 
         return redirect()->route('admin.purchases.index')
             ->with('success', 'Purchase updated successfully.');
@@ -127,10 +151,14 @@ class PurchaseController extends Controller
      */
     public function destroy(Purchase $purchase): RedirectResponse
     {
-        StockService::removeStockFromPurchase($purchase->items);
+        DB::transaction(function () use ($purchase) {
+            StockService::removeStockFromPurchase($purchase->items);
 
-        $purchase->items()->delete();
-        $purchase->delete();
+            $purchase->items()->delete();
+            $purchase->returns()->delete();
+            $purchase->payments()->delete();
+            $purchase->delete();
+        });
 
         return redirect()->route('admin.purchases.index')
             ->with('success', 'Purchase deleted successfully.');

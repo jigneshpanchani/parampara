@@ -1,8 +1,10 @@
 @extends('layouts.admin')
 
+@section('title', 'Edit Sell Return')
+
 @section('content')
 <div class="container mx-auto px-4 py-8">
-    <div class="max-w-6xl mx-autoo">
+    <div class="max-w-6xl mx-auto">
         <h1 class="text-3xl font-bold text-gray-900 mb-6">Edit Sell Return</h1>
 
         @if ($errors->any())
@@ -24,8 +26,9 @@
                 <div>
                     <label for="sell_id" class="block text-sm font-semibold text-gray-700 mb-2">Sale</label>
                     <select id="sell_id" name="sell_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <option value="">Select a sale</option>
                         @foreach ($sells as $sell)
-                            <option value="{{ $sell->id }}" {{ $sellReturn->sell_id == $sell->id ? 'selected' : '' }}>Sale #{{ $sell->id }} - {{ $sell->sell_date->format('d M Y') }}</option>
+                            <option value="{{ $sell->id }}" {{ old('sell_id', $sellReturn->sell_id) == $sell->id ? 'selected' : '' }}>Sale #{{ $sell->id }} - {{ $sell->sell_date->format('d M Y') }}</option>
                         @endforeach
                     </select>
                     @error('sell_id')
@@ -36,8 +39,9 @@
                 <div>
                     <label for="product_id" class="block text-sm font-semibold text-gray-700 mb-2">Product</label>
                     <select id="product_id" name="product_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <option value="">Select a product</option>
                         @foreach ($products as $product)
-                            <option value="{{ $product->id }}" {{ $sellReturn->product_id == $product->id ? 'selected' : '' }}>{{ $product->product_name }}</option>
+                            <option value="{{ $product->id }}" {{ old('product_id', $sellReturn->product_id) == $product->id ? 'selected' : '' }}>{{ $product->product_name }}</option>
                         @endforeach
                     </select>
                     @error('product_id')
@@ -50,7 +54,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                     <label for="return_date" class="block text-sm font-semibold text-gray-700 mb-2">Return Date</label>
-                    <input type="date" id="return_date" name="return_date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required value="{{ $sellReturn->return_date->format('Y-m-d') }}">
+                    <input type="date" id="return_date" name="return_date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required value="{{ old('return_date', $sellReturn->return_date->format('Y-m-d')) }}">
                     @error('return_date')
                         <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
@@ -58,7 +62,7 @@
 
                 <div>
                     <label for="quantity" class="block text-sm font-semibold text-gray-700 mb-2">Quantity</label>
-                    <input type="number" id="quantity" name="quantity" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" min="1" required value="{{ $sellReturn->quantity }}">
+                    <input type="number" id="quantity" name="quantity" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" min="1" required value="{{ old('quantity', $sellReturn->quantity) }}">
                     @error('quantity')
                         <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
@@ -69,7 +73,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                     <label for="return_price" class="block text-sm font-semibold text-gray-700 mb-2">Return Price (₹)</label>
-                    <input type="number" id="return_price" name="return_price" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required value="{{ $sellReturn->return_price }}">
+                    <input type="number" id="return_price" name="return_price" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required value="{{ old('return_price', $sellReturn->return_price) }}">
                     @error('return_price')
                         <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
@@ -77,7 +81,7 @@
 
                 <div>
                     <label for="reason" class="block text-sm font-semibold text-gray-700 mb-2">Reason</label>
-                    <input type="text" id="reason" name="reason" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="{{ $sellReturn->reason }}">
+                    <input type="text" id="reason" name="reason" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="{{ old('reason', $sellReturn->reason) }}">
                     @error('reason')
                         <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
@@ -87,7 +91,7 @@
             <!-- Row 4: Notes (Full Width) -->
             <div class="mb-6">
                 <label for="notes" class="block text-sm font-semibold text-gray-700 mb-2">Notes</label>
-                <textarea id="notes" name="notes" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">{{ $sellReturn->notes }}</textarea>
+                <textarea id="notes" name="notes" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">{{ old('notes', $sellReturn->notes) }}</textarea>
                 @error('notes')
                     <span class="text-red-500 text-sm">{{ $message }}</span>
                 @enderror

@@ -1,8 +1,10 @@
 @extends('layouts.admin')
 
+@section('title', 'Add Sell Return')
+
 @section('content')
 <div class="container mx-auto px-4 py-8">
-    <div class="max-w-6xl mx-autoo">
+    <div class="max-w-6xl mx-auto">
         <h1 class="text-3xl font-bold text-gray-900 mb-6">Add Sell Return</h1>
 
         @if ($errors->any())
@@ -25,7 +27,7 @@
                     <select id="sell_id" name="sell_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                         <option value="">Select a sale</option>
                         @foreach ($sells as $sell)
-                            <option value="{{ $sell->id }}">Sale #{{ $sell->id }} - {{ $sell->sell_date->format('d M Y') }}</option>
+                            <option value="{{ $sell->id }}" {{ old('sell_id') == $sell->id ? 'selected' : '' }}>Sale #{{ $sell->id }} - {{ $sell->sell_date->format('d M Y') }}</option>
                         @endforeach
                     </select>
                     @error('sell_id')
@@ -38,7 +40,7 @@
                     <select id="product_id" name="product_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                         <option value="">Select a product</option>
                         @foreach ($products as $product)
-                            <option value="{{ $product->id }}">{{ $product->product_name }}</option>
+                            <option value="{{ $product->id }}" {{ old('product_id') == $product->id ? 'selected' : '' }}>{{ $product->product_name }}</option>
                         @endforeach
                     </select>
                     @error('product_id')

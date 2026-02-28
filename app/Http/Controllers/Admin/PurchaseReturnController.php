@@ -8,6 +8,7 @@ use App\Models\Purchase;
 use App\Models\Product;
 use App\Services\StockService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PurchaseReturnController extends Controller
 {
@@ -55,10 +56,10 @@ class PurchaseReturnController extends Controller
 
         $validated['total_return_amount'] = $validated['quantity'] * $validated['return_price'];
 
-        $return = PurchaseReturn::create($validated);
-
-        // Deduct stock from purchase return
-        StockService::deductStockFromPurchaseReturn($return);
+        DB::transaction(function () use ($validated) {
+            $return = PurchaseReturn::create($validated);
+            StockService::deductStockFromPurchaseReturn($return);
+        });
 
         return redirect()->route('admin.purchase-returns.index')->with('success', 'Purchase return created successfully.');
     }
@@ -98,13 +99,11 @@ class PurchaseReturnController extends Controller
 
         $validated['total_return_amount'] = $validated['quantity'] * $validated['return_price'];
 
-        // Add back old stock before updating
-        StockService::addStockBackFromPurchaseReturn($purchaseReturn);
-
-        $purchaseReturn->update($validated);
-
-        // Deduct new stock
-        StockService::deductStockFromPurchaseReturn($purchaseReturn);
+        DB::transaction(function () use ($validated, $purchaseReturn) {
+            StockService::addStockBackFromPurchaseReturn($purchaseReturn);
+            $purchaseReturn->update($validated);
+            StockService::deductStockFromPurchaseReturn($purchaseReturn);
+        });
 
         return redirect()->route('admin.purchase-returns.index')->with('success', 'Purchase return updated successfully.');
     }
@@ -114,10 +113,11 @@ class PurchaseReturnController extends Controller
      */
     public function destroy(PurchaseReturn $purchaseReturn)
     {
-        // Add back stock before deleting
-        StockService::addStockBackFromPurchaseReturn($purchaseReturn);
+        DB::transaction(function () use ($purchaseReturn) {
+            StockService::addStockBackFromPurchaseReturn($purchaseReturn);
+            $purchaseReturn->delete();
+        });
 
-        $purchaseReturn->delete();
         return redirect()->route('admin.purchase-returns.index')->with('success', 'Purchase return deleted successfully.');
     }
 }

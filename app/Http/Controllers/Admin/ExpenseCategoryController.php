@@ -62,6 +62,7 @@ class ExpenseCategoryController extends Controller
      */
     public function show(ExpenseCategory $expenseCategory)
     {
+        $expenseCategory->load('expenses');
         return view('admin.expense-categories.show', compact('expenseCategory'));
     }
 

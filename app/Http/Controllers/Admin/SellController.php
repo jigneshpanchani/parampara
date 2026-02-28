@@ -10,6 +10,7 @@ use App\Models\Sell;
 use App\Services\SellService;
 use App\Services\StockService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class SellController extends Controller
@@ -47,23 +48,25 @@ class SellController extends Controller
     {
         $validated = $request->validated();
 
-        $totalAmount = $this->sellService->calculateTotalAmount(
-            $validated['product_id'],
-            $validated['quantity'],
-            $validated['selling_price']
-        );
+        DB::transaction(function () use ($validated) {
+            $totalAmount = $this->sellService->calculateTotalAmount(
+                $validated['product_id'],
+                $validated['quantity'],
+                $validated['selling_price']
+            );
 
-        $attributes = $this->sellService->buildSellAttributes($validated, $totalAmount);
-        $sell = Sell::create($attributes);
+            $attributes = $this->sellService->buildSellAttributes($validated, $totalAmount);
+            $sell = Sell::create($attributes);
 
-        $this->sellService->createSellItems(
-            $sell,
-            $validated['product_id'],
-            $validated['quantity'],
-            $validated['selling_price']
-        );
+            $this->sellService->createSellItems(
+                $sell,
+                $validated['product_id'],
+                $validated['quantity'],
+                $validated['selling_price']
+            );
 
-        StockService::deductStockFromSale($sell->items);
+            StockService::deductStockFromSale($sell->items);
+        });
 
         return redirect()->route('admin.sells.index')
             ->with('success', 'Sale recorded successfully.');
@@ -96,30 +99,29 @@ class SellController extends Controller
     {
         $validated = $request->validated();
 
-        $totalAmount = $this->sellService->calculateTotalAmount(
-            $validated['product_id'],
-            $validated['quantity'],
-            $validated['selling_price']
-        );
+        DB::transaction(function () use ($validated, $sell) {
+            $totalAmount = $this->sellService->calculateTotalAmount(
+                $validated['product_id'],
+                $validated['quantity'],
+                $validated['selling_price']
+            );
 
-        $attributes = $this->sellService->buildSellAttributes($validated, $totalAmount);
-        $sell->update($attributes);
+            $attributes = $this->sellService->buildSellAttributes($validated, $totalAmount);
+            $sell->update($attributes);
 
-        // Add back old stock before deleting items
-        StockService::addStockBackFromSale($sell->items);
+            StockService::addStockBackFromSale($sell->items);
 
-        // Delete old items and create new ones
-        $sell->items()->delete();
-        $this->sellService->createSellItems(
-            $sell,
-            $validated['product_id'],
-            $validated['quantity'],
-            $validated['selling_price']
-        );
+            $sell->items()->delete();
+            $this->sellService->createSellItems(
+                $sell,
+                $validated['product_id'],
+                $validated['quantity'],
+                $validated['selling_price']
+            );
 
-        // Reload items (fresh from DB) before deducting stock
-        $sell->load('items');
-        StockService::deductStockFromSale($sell->items);
+            $sell->load('items');
+            StockService::deductStockFromSale($sell->items);
+        });
 
         return redirect()->route('admin.sells.index')
             ->with('success', 'Sale updated successfully.');
@@ -130,10 +132,13 @@ class SellController extends Controller
      */
     public function destroy(Sell $sell): RedirectResponse
     {
-        StockService::addStockBackFromSale($sell->items);
+        DB::transaction(function () use ($sell) {
+            StockService::addStockBackFromSale($sell->items);
 
-        $sell->items()->delete();
-        $sell->delete();
+            $sell->returns()->delete();
+            $sell->items()->delete();
+            $sell->delete();
+        });
 
         return redirect()->route('admin.sells.index')
             ->with('success', 'Sale deleted successfully.');

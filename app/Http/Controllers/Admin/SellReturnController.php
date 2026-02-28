@@ -8,6 +8,7 @@ use App\Models\Sell;
 use App\Models\Product;
 use App\Services\StockService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class SellReturnController extends Controller
 {
@@ -55,10 +56,10 @@ class SellReturnController extends Controller
 
         $validated['total_return_amount'] = $validated['quantity'] * $validated['return_price'];
 
-        $return = SellReturn::create($validated);
-
-        // Add stock from sell return
-        StockService::addStockFromSellReturn($return);
+        DB::transaction(function () use ($validated, &$return) {
+            $return = SellReturn::create($validated);
+            StockService::addStockFromSellReturn($return);
+        });
 
         return redirect()->route('admin.sell-returns.index')->with('success', 'Sell return created successfully.');
     }
@@ -98,13 +99,11 @@ class SellReturnController extends Controller
 
         $validated['total_return_amount'] = $validated['quantity'] * $validated['return_price'];
 
-        // Remove old stock before updating
-        StockService::removeStockFromSellReturn($sellReturn);
-
-        $sellReturn->update($validated);
-
-        // Add new stock
-        StockService::addStockFromSellReturn($sellReturn);
+        DB::transaction(function () use ($validated, $sellReturn) {
+            StockService::removeStockFromSellReturn($sellReturn);
+            $sellReturn->update($validated);
+            StockService::addStockFromSellReturn($sellReturn);
+        });
 
         return redirect()->route('admin.sell-returns.index')->with('success', 'Sell return updated successfully.');
     }
@@ -114,10 +113,11 @@ class SellReturnController extends Controller
      */
     public function destroy(SellReturn $sellReturn)
     {
-        // Remove stock before deleting
-        StockService::removeStockFromSellReturn($sellReturn);
+        DB::transaction(function () use ($sellReturn) {
+            StockService::removeStockFromSellReturn($sellReturn);
+            $sellReturn->delete();
+        });
 
-        $sellReturn->delete();
         return redirect()->route('admin.sell-returns.index')->with('success', 'Sell return deleted successfully.');
     }
 }

@@ -1,5 +1,7 @@
 @extends('layouts.admin')
 
+@section('title', 'Payments')
+
 @section('content')
 <div class="container mx-auto px-4 py-8">
     <!-- Header -->
@@ -25,7 +27,8 @@
         <table class="w-full">
             <thead class="bg-gray-100 border-b">
                 <tr>
-                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Purchase ID</th>
+                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">#</th>
+                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Purchase</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Payment Date</th>
                     <th class="px-6 py-3 text-right text-sm font-semibold text-gray-700">Amount</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Method</th>
@@ -34,9 +37,16 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse($payments as $payment)
+                @forelse($payments as $index => $payment)
                 <tr class="border-b hover:bg-gray-50">
-                    <td class="px-6 py-4 text-sm font-semibold text-gray-800">#{{ $payment->purchase_id }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">{{ $payments->firstItem() + $index }}</td>
+                    <td class="px-6 py-4 text-sm font-semibold text-gray-800">
+                        @if ($payment->purchase)
+                            <a href="{{ route('admin.purchases.show', $payment->purchase) }}" class="text-blue-600 hover:underline">{{ $payment->purchase->supplier_name }}</a>
+                        @else
+                            #{{ $payment->purchase_id }}
+                        @endif
+                    </td>
                     <td class="px-6 py-4 text-sm text-gray-600">{{ $payment->payment_date->format('d M Y') }}</td>
                     <td class="px-6 py-4 text-right text-sm font-bold text-gray-800">₹{{ number_format($payment->amount, 2) }}</td>
                     <td class="px-6 py-4 text-sm text-gray-600">{{ $payment->getPaymentMethodLabel() }}</td>
