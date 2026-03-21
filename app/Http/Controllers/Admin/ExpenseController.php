@@ -20,10 +20,28 @@ class ExpenseController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $expenses = Expense::with('expenseCategory')->latest()->paginate(10);
-        return view('admin.expenses.index', compact('expenses'));
+        $query = Expense::with('expenseCategory')->orderBy('expense_date', 'desc');
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('expense_date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('expense_date', '<=', $request->date_to);
+        }
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+        if ($request->filled('payment_method')) {
+            $query->where('payment_method', $request->payment_method);
+        }
+
+        $totalAmount = (clone $query)->sum('amount');
+        $expenses = $query->paginate(10)->withQueryString();
+        $categories = ExpenseCategory::orderBy('name')->get();
+
+        return view('admin.expenses.index', compact('expenses', 'categories', 'totalAmount'));
     }
 
     /**

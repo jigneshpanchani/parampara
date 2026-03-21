@@ -23,6 +23,50 @@
         </div>
     @endif
 
+    {{-- Filters --}}
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <form method="GET" action="{{ route('admin.expenses.index') }}" class="flex flex-wrap items-end gap-4">
+            <div>
+                <label for="date_from" class="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                <input type="date" name="date_from" id="date_from" value="{{ request('date_from') }}"
+                    class="rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+            </div>
+            <div>
+                <label for="date_to" class="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                <input type="date" name="date_to" id="date_to" value="{{ request('date_to') }}"
+                    class="rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+            </div>
+            <div>
+                <label for="category_id" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select name="category_id" id="category_id"
+                    class="rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm min-w-[180px]">
+                    <option value="">All Categories</option>
+                    @foreach ($categories as $cat)
+                        <option value="{{ $cat->id }}" {{ request('category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label for="payment_method" class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                <select name="payment_method" id="payment_method"
+                    class="rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm min-w-[160px]">
+                    <option value="">All Methods</option>
+                    <option value="Cash" {{ request('payment_method') === 'Cash' ? 'selected' : '' }}>Cash</option>
+                    <option value="G-Pay" {{ request('payment_method') === 'G-Pay' ? 'selected' : '' }}>G-Pay</option>
+                    <option value="Online Transfer" {{ request('payment_method') === 'Online Transfer' ? 'selected' : '' }}>Online Transfer</option>
+                </select>
+            </div>
+            <div class="flex gap-2">
+                <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm">
+                    Filter
+                </button>
+                <a href="{{ route('admin.expenses.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded text-sm inline-flex items-center">
+                    Clear
+                </a>
+            </div>
+        </form>
+    </div>
+
     <div class="bg-white rounded-lg shadow overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
@@ -87,8 +131,17 @@
         </table>
     </div>
 
-    <div class="mt-4">
-        {{ $expenses->links() }}
+    <div class="mt-4 flex flex-wrap items-center gap-4">
+        <div class="flex-1 min-w-0 text-sm text-gray-600 text-left">
+            Showing {{ $expenses->total() > 0 ? $expenses->firstItem() . ' to ' . $expenses->lastItem() . ' of' : '0 of' }} {{ $expenses->total() }} results
+        </div>
+        <div class="flex-1 min-w-0 text-gray-700 font-semibold text-center">
+            Total (this page): <span class="text-gray-900">₹{{ number_format($expenses->sum('amount'), 2) }}</span>
+            &nbsp;·&nbsp; All total: <span class="text-gray-900">₹{{ number_format($totalAmount ?? 0, 2) }}</span>
+        </div>
+        <div class="flex-1 min-w-0 flex justify-end">
+            {{ $expenses->links('vendor.pagination.tailwind-links-only') }}
+        </div>
     </div>
 </div>
 @endsection
