@@ -4,15 +4,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
 
 class SellInvoice extends Model
 {
     use HasFactory;
+    use SoftDeletes;
 
     public const TYPE_CASH = 'cash';
 
     public const TYPE_ONLINE = 'online';
+
+    public const TYPE_MIX = 'mix';
 
     protected $fillable = [
         'invoice_number',
@@ -33,13 +37,16 @@ class SellInvoice extends Model
         'sells_count' => 'integer',
     ];
 
+    /**
+     * Related sells — FK depends on invoice type (cash / online / mix are separate).
+     */
     public function sells()
     {
-        $fk = $this->invoice_type === self::TYPE_ONLINE
-            ? 'online_sell_invoice_id'
-            : 'cash_sell_invoice_id';
-
-        return $this->hasMany(Sell::class, $fk);
+        return match ($this->invoice_type) {
+            self::TYPE_ONLINE => $this->hasMany(Sell::class, 'online_sell_invoice_id'),
+            self::TYPE_MIX => $this->hasMany(Sell::class, 'mix_sell_invoice_id'),
+            default => $this->hasMany(Sell::class, 'cash_sell_invoice_id'),
+        };
     }
 
     public function getInvoiceTypeLabelAttribute(): string
@@ -47,70 +54,40 @@ class SellInvoice extends Model
         return match ($this->invoice_type) {
             self::TYPE_CASH => 'Cash invoice',
             self::TYPE_ONLINE => 'Online payment invoice',
+            self::TYPE_MIX => 'Mix payment invoice',
             default => ucfirst((string) $this->invoice_type),
         };
     }
 
     /**
-     * Total amount attributed to this invoice type for one sale (full sell row).
+     * Total amount for this invoice type (one full sell row where applicable).
      */
     public static function totalAmountForSell(Sell $sell, string $invoiceType): float
     {
         $mode = $sell->payment_mode ?? 'cash';
 
-        if ($invoiceType === self::TYPE_CASH) {
-            if ($mode === 'cash') {
-                return (float) $sell->total_amount;
-            }
-            if ($mode === 'mix') {
-                return (float) ($sell->cash_amount ?? 0);
-            }
-
-            return 0.0;
-        }
-
-        // online invoice
-        if (in_array($mode, ['upi', 'gpay'], true)) {
-            return (float) $sell->total_amount;
-        }
-        if ($mode === 'mix') {
-            return (float) ($sell->online_amount ?? 0);
-        }
-
-        return 0.0;
+        return match ($invoiceType) {
+            self::TYPE_CASH => $mode === 'cash' ? (float) $sell->total_amount : 0.0,
+            self::TYPE_ONLINE => in_array($mode, ['upi', 'gpay'], true) ? (float) $sell->total_amount : 0.0,
+            self::TYPE_MIX => $mode === 'mix' ? (float) $sell->total_amount : 0.0,
+            default => 0.0,
+        };
     }
 
     /**
-     * Line amount on this invoice (proportional split for mix).
+     * Line amount on this invoice (full line for cash/online/mix invoices; no split).
      */
     public static function lineAmountForInvoiceType(Sell $sell, SellItem $item, string $invoiceType): float
     {
-        $sellTotal = max((float) ($sell->total_amount ?? 0), 0.00001);
-        $portion = (float) $item->total_price / $sellTotal;
-
-        if ($invoiceType === self::TYPE_CASH) {
-            if ($sell->payment_mode === 'cash') {
-                return (float) $item->total_price;
-            }
-            if ($sell->payment_mode === 'mix') {
-                return round($portion * (float) ($sell->cash_amount ?? 0), 2);
-            }
-
+        if (self::totalAmountForSell($sell, $invoiceType) <= 0) {
             return 0.0;
         }
 
-        if (in_array($sell->payment_mode, ['upi', 'gpay'], true)) {
-            return (float) $item->total_price;
-        }
-        if ($sell->payment_mode === 'mix') {
-            return round($portion * (float) ($sell->online_amount ?? 0), 2);
-        }
-
-        return 0.0;
+        return (float) $item->total_price;
     }
 
     /**
-     * Aggregate totals for stored invoice snapshot (one column is non-zero per type).
+     * Aggregate totals for stored invoice snapshot.
      */
     public static function aggregateTotalsFromSells(Collection $sells, string $invoiceType): array
     {
@@ -119,12 +96,15 @@ class SellInvoice extends Model
         $online = 0.0;
 
         foreach ($sells as $sell) {
-            $amt = self::totalAmountForSell($sell, $invoiceType);
-            $total += $amt;
-            if ($invoiceType === self::TYPE_CASH) {
-                $cash += $amt;
+            $total += self::totalAmountForSell($sell, $invoiceType);
+
+            if ($invoiceType === self::TYPE_MIX) {
+                $cash += (float) ($sell->cash_amount ?? 0);
+                $online += (float) ($sell->online_amount ?? 0);
+            } elseif ($invoiceType === self::TYPE_CASH) {
+                $cash += self::totalAmountForSell($sell, $invoiceType);
             } else {
-                $online += $amt;
+                $online += self::totalAmountForSell($sell, $invoiceType);
             }
         }
 
@@ -138,7 +118,11 @@ class SellInvoice extends Model
 
     public static function makeInvoiceNumber(\DateTimeInterface $date, string $type): string
     {
-        $suffix = $type === self::TYPE_ONLINE ? 'ONL' : 'CASH';
+        $suffix = match ($type) {
+            self::TYPE_ONLINE => 'ONLINE',
+            self::TYPE_MIX => 'MIX',
+            default => 'CASH',
+        };
 
         return 'SINV-' . $date->format('Ymd') . '-' . $suffix;
     }

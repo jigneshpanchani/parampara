@@ -10,6 +10,7 @@ use App\Models\Sell;
 use App\Services\SellService;
 use App\Services\StockService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -22,11 +23,25 @@ class SellController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
-        $sells = Sell::with(['items.product', 'cashSellInvoice', 'onlineSellInvoice'])
-            ->orderBy('sell_date', 'desc')
-            ->paginate(20);
+        $query = Sell::with(['items.product', 'cashSellInvoice', 'onlineSellInvoice', 'mixSellInvoice'])
+            ->orderBy('sell_date', 'desc');
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('sell_date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('sell_date', '<=', $request->date_to);
+        }
+        if ($request->filled('payment_mode') && in_array($request->payment_mode, ['cash', 'upi', 'gpay', 'mix'], true)) {
+            $query->where('payment_mode', $request->payment_mode);
+        }
+        if ($request->filled('payment_status') && in_array($request->payment_status, ['paid', 'pending', 'partial'], true)) {
+            $query->where('payment_status', $request->payment_status);
+        }
+
+        $sells = $query->paginate(20)->withQueryString();
 
         return view('admin.sells.index', compact('sells'));
     }
@@ -77,7 +92,7 @@ class SellController extends Controller
      */
     public function show(Sell $sell): View
     {
-        $sell->load(['items.product', 'cashSellInvoice', 'onlineSellInvoice']);
+        $sell->load(['items.product', 'cashSellInvoice', 'onlineSellInvoice', 'mixSellInvoice']);
         return view('admin.sells.show', compact('sell'));
     }
 

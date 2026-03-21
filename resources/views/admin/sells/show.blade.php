@@ -38,6 +38,14 @@
                         </dd>
                     </div>
                     @endif
+                    @if ($sell->mixSellInvoice)
+                    <div class="flex justify-between items-center">
+                        <dt class="text-sm text-gray-600">Mix invoice</dt>
+                        <dd>
+                            <a href="{{ route('admin.sell-invoices.show', $sell->mixSellInvoice) }}" class="text-sm font-mono font-semibold text-indigo-600 hover:underline">{{ $sell->mixSellInvoice->invoice_number }}</a>
+                        </dd>
+                    </div>
+                    @endif
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-600">Seller Name</dt>
                         <dd class="text-sm font-semibold text-gray-900">{{ $sell->seller_name ?? '-' }}</dd>

@@ -29,7 +29,7 @@ class SellInvoiceController extends Controller
     {
         $date = $request->input('date', now()->format('Y-m-d'));
         $invoiceType = $request->input('invoice_type', SellInvoice::TYPE_CASH);
-        if (! in_array($invoiceType, [SellInvoice::TYPE_CASH, SellInvoice::TYPE_ONLINE], true)) {
+        if (! in_array($invoiceType, [SellInvoice::TYPE_CASH, SellInvoice::TYPE_ONLINE, SellInvoice::TYPE_MIX], true)) {
             $invoiceType = SellInvoice::TYPE_CASH;
         }
 
@@ -37,6 +37,7 @@ class SellInvoiceController extends Controller
 
         $pendingCash = $this->eligibleSellsQuery($dateCarbon, SellInvoice::TYPE_CASH)->count();
         $pendingOnline = $this->eligibleSellsQuery($dateCarbon, SellInvoice::TYPE_ONLINE)->count();
+        $pendingMix = $this->eligibleSellsQuery($dateCarbon, SellInvoice::TYPE_MIX)->count();
 
         $alreadyCash = SellInvoice::whereDate('invoice_date', $dateCarbon)
             ->where('invoice_type', SellInvoice::TYPE_CASH)
@@ -44,9 +45,21 @@ class SellInvoiceController extends Controller
         $alreadyOnline = SellInvoice::whereDate('invoice_date', $dateCarbon)
             ->where('invoice_type', SellInvoice::TYPE_ONLINE)
             ->exists();
+        $alreadyMix = SellInvoice::whereDate('invoice_date', $dateCarbon)
+            ->where('invoice_type', SellInvoice::TYPE_MIX)
+            ->exists();
 
-        $alreadyInvoiced = $invoiceType === SellInvoice::TYPE_CASH ? $alreadyCash : $alreadyOnline;
-        $pendingCount = $invoiceType === SellInvoice::TYPE_CASH ? $pendingCash : $pendingOnline;
+        $alreadyInvoiced = match ($invoiceType) {
+            SellInvoice::TYPE_ONLINE => $alreadyOnline,
+            SellInvoice::TYPE_MIX => $alreadyMix,
+            default => $alreadyCash,
+        };
+
+        $pendingCount = match ($invoiceType) {
+            SellInvoice::TYPE_ONLINE => $pendingOnline,
+            SellInvoice::TYPE_MIX => $pendingMix,
+            default => $pendingCash,
+        };
 
         return view('admin.sell-invoices.create', compact(
             'date',
@@ -54,9 +67,11 @@ class SellInvoiceController extends Controller
             'pendingCount',
             'pendingCash',
             'pendingOnline',
+            'pendingMix',
             'alreadyInvoiced',
             'alreadyCash',
-            'alreadyOnline'
+            'alreadyOnline',
+            'alreadyMix'
         ));
     }
 
@@ -64,7 +79,7 @@ class SellInvoiceController extends Controller
     {
         $validated = $request->validate([
             'invoice_date' => 'required|date',
-            'invoice_type' => 'required|in:cash,online',
+            'invoice_type' => 'required|in:cash,online,mix',
             'notes' => 'nullable|string|max:2000',
         ]);
 
@@ -74,7 +89,7 @@ class SellInvoiceController extends Controller
         if (SellInvoice::whereDate('invoice_date', $date)->where('invoice_type', $type)->exists()) {
             return back()
                 ->withInput()
-                ->with('error', 'An invoice of this type already exists for this date. Delete it first if you need to regenerate.');
+                ->with('error', 'An invoice of this type already exists for this date. Remove the existing one from the list first if you need to regenerate.');
         }
 
         $sells = $this->eligibleSellsQuery($date, $type)->with('items.product')->orderBy('id')->get();
@@ -82,7 +97,7 @@ class SellInvoiceController extends Controller
         if ($sells->isEmpty()) {
             return back()
                 ->withInput()
-                ->with('error', 'No matching sales for this date and invoice type. (Cash invoice: cash & mix cash portion. Online invoice: UPI, G-Pay & mix online portion.)');
+                ->with('error', 'No matching sales for this date and invoice type. Cash: cash only. Online: UPI & G-Pay only. Mix: mix payments only.');
         }
 
         $agg = SellInvoice::aggregateTotalsFromSells($sells, $type);
@@ -99,7 +114,11 @@ class SellInvoiceController extends Controller
                 'notes' => $validated['notes'] ?? null,
             ]);
 
-            $fk = $type === SellInvoice::TYPE_ONLINE ? 'online_sell_invoice_id' : 'cash_sell_invoice_id';
+            $fk = match ($type) {
+                SellInvoice::TYPE_ONLINE => 'online_sell_invoice_id',
+                SellInvoice::TYPE_MIX => 'mix_sell_invoice_id',
+                default => 'cash_sell_invoice_id',
+            };
             Sell::whereIn('id', $sells->pluck('id'))->update([$fk => $invoice->id]);
 
             return $invoice;
@@ -119,13 +138,24 @@ class SellInvoiceController extends Controller
         return view('admin.sell-invoices.show', compact('sellInvoice'));
     }
 
+    /**
+     * Soft-delete invoice and unlink sales (removes from list; data retained).
+     */
     public function destroy(SellInvoice $sellInvoice): RedirectResponse
     {
-        $sellInvoice->delete();
+        DB::transaction(function () use ($sellInvoice) {
+            $fk = match ($sellInvoice->invoice_type) {
+                SellInvoice::TYPE_ONLINE => 'online_sell_invoice_id',
+                SellInvoice::TYPE_MIX => 'mix_sell_invoice_id',
+                default => 'cash_sell_invoice_id',
+            };
+            Sell::where($fk, $sellInvoice->id)->update([$fk => null]);
+            $sellInvoice->delete();
+        });
 
         return redirect()
             ->route('admin.sell-invoices.index')
-            ->with('success', 'Invoice removed. Matching sales can be invoiced again for that type.');
+            ->with('success', 'Invoice removed from the list. You can generate a new one for that date and type.');
     }
 
     public function export(SellInvoice $sellInvoice): StreamedResponse
@@ -140,9 +170,12 @@ class SellInvoiceController extends Controller
             $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
 
-            $title = $sellInvoice->invoice_type === SellInvoice::TYPE_CASH
-                ? 'Daily Sell Invoice — Cash'
-                : 'Daily Sell Invoice — Online (UPI / G-Pay)';
+            $title = match ($sellInvoice->invoice_type) {
+                SellInvoice::TYPE_CASH => 'Daily Sell Invoice — Cash',
+                SellInvoice::TYPE_ONLINE => 'Daily Sell Invoice — Online (UPI / G-Pay)',
+                SellInvoice::TYPE_MIX => 'Daily Sell Invoice — Mix (Cash + Online)',
+                default => 'Daily Sell Invoice',
+            };
 
             $sheet->setCellValue('A1', $title);
             $sheet->mergeCells('A1:K1');
@@ -222,28 +255,17 @@ class SellInvoiceController extends Controller
     }
 
     /**
-     * Sales eligible for this invoice type (not yet linked on that side).
+     * Sales eligible for this invoice type (not yet linked on that invoice column).
      */
     protected function eligibleSellsQuery(Carbon $date, string $invoiceType): Builder
     {
         $q = Sell::query()->whereDate('sell_date', $date);
 
-        if ($invoiceType === SellInvoice::TYPE_CASH) {
-            return $q->whereNull('cash_sell_invoice_id')
-                ->where(function (Builder $q) {
-                    $q->where('payment_mode', 'cash')
-                        ->orWhere(function (Builder $q) {
-                            $q->where('payment_mode', 'mix')->where('cash_amount', '>', 0);
-                        });
-                });
-        }
-
-        return $q->whereNull('online_sell_invoice_id')
-            ->where(function (Builder $q) {
-                $q->whereIn('payment_mode', ['upi', 'gpay'])
-                    ->orWhere(function (Builder $q) {
-                        $q->where('payment_mode', 'mix')->where('online_amount', '>', 0);
-                    });
-            });
+        return match ($invoiceType) {
+            SellInvoice::TYPE_CASH => $q->whereNull('cash_sell_invoice_id')->where('payment_mode', 'cash'),
+            SellInvoice::TYPE_ONLINE => $q->whereNull('online_sell_invoice_id')->whereIn('payment_mode', ['upi', 'gpay']),
+            SellInvoice::TYPE_MIX => $q->whereNull('mix_sell_invoice_id')->where('payment_mode', 'mix'),
+            default => $q->whereRaw('1 = 0'),
+        };
     }
 }

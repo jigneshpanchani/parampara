@@ -13,6 +13,8 @@
             <h2 class="text-3xl font-bold text-gray-800">{{ $sellInvoice->invoice_number }}</h2>
             @if($sellInvoice->invoice_type === 'online')
                 <span class="px-3 py-1 rounded-full text-sm font-semibold bg-purple-100 text-purple-800">Online payment invoice</span>
+            @elseif($sellInvoice->invoice_type === 'mix')
+                <span class="px-3 py-1 rounded-full text-sm font-semibold bg-indigo-100 text-indigo-800">Mix payment invoice</span>
             @else
                 <span class="px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-800">Cash invoice</span>
             @endif
@@ -59,7 +61,7 @@
                 <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Product</th>
                 <th class="px-6 py-3 text-right text-sm font-semibold text-gray-700">Qty</th>
                 <th class="px-6 py-3 text-right text-sm font-semibold text-gray-700">Line total</th>
-                <th class="px-6 py-3 text-right text-sm font-semibold text-gray-700">On this invoice</th>
+                <th class="px-6 py-3 text-right text-sm font-semibold text-gray-700">Amount (this invoice)</th>
                 <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Payment</th>
                 <th class="px-6 py-3 text-center text-sm font-semibold text-gray-700">Sale</th>
             </tr>
@@ -92,13 +94,11 @@
     </table>
 </div>
 
-<p class="text-gray-500 text-sm mt-4">Mix sales split the line totals by cash vs online share; &quot;On this invoice&quot; shows only the part for this invoice type.</p>
-
 <div class="mt-6 flex gap-4">
-    <form action="{{ route('admin.sell-invoices.destroy', $sellInvoice) }}" method="POST" onsubmit="return confirm('Delete this invoice? Matching sales can be invoiced again for this type.');">
+    <form action="{{ route('admin.sell-invoices.destroy', $sellInvoice) }}" method="POST" onsubmit="return confirm('Remove this invoice from the list? Sales can be invoiced again for this type.');">
         @csrf
         @method('DELETE')
-        <button type="submit" class="text-red-600 hover:underline">Delete invoice</button>
+        <button type="submit" class="text-red-600 hover:underline">Remove from list</button>
     </form>
 </div>
 @endsection

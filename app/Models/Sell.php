@@ -52,6 +52,11 @@ class Sell extends Model
         return $this->belongsTo(SellInvoice::class, 'online_sell_invoice_id');
     }
 
+    public function mixSellInvoice()
+    {
+        return $this->belongsTo(SellInvoice::class, 'mix_sell_invoice_id');
+    }
+
     /**
      * Get formatted total amount.
      */

@@ -16,6 +16,43 @@
     </a>
 </div>
 
+{{-- Filters: applies to summary cards and table below --}}
+<div class="bg-white rounded-lg shadow p-4 mb-6">
+    <form method="GET" action="{{ route('admin.purchases.index') }}" class="flex flex-wrap items-end gap-4">
+        <div>
+            <label for="date_from" class="block text-sm font-medium text-gray-700 mb-1">From date</label>
+            <input type="date" name="date_from" id="date_from" value="{{ request('date_from') }}"
+                class="rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+        </div>
+        <div>
+            <label for="date_to" class="block text-sm font-medium text-gray-700 mb-1">To date</label>
+            <input type="date" name="date_to" id="date_to" value="{{ request('date_to') }}"
+                class="rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+        </div>
+        <div>
+            <label for="bill_type" class="block text-sm font-medium text-gray-700 mb-1">Bill type</label>
+            <select name="bill_type" id="bill_type" class="rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm min-w-[150px]">
+                <option value="">All</option>
+                <option value="gst" {{ request('bill_type') === 'gst' ? 'selected' : '' }}>GST</option>
+                <option value="without_gst" {{ request('bill_type') === 'without_gst' ? 'selected' : '' }}>Without GST</option>
+            </select>
+        </div>
+        <div>
+            <label for="payment_status" class="block text-sm font-medium text-gray-700 mb-1">Payment status</label>
+            <select name="payment_status" id="payment_status" class="rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm min-w-[150px]">
+                <option value="">All</option>
+                <option value="paid" {{ request('payment_status') === 'paid' ? 'selected' : '' }}>Paid</option>
+                <option value="partial" {{ request('payment_status') === 'partial' ? 'selected' : '' }}>Partial</option>
+                <option value="pending" {{ request('payment_status') === 'pending' ? 'selected' : '' }}>Pending</option>
+            </select>
+        </div>
+        <div class="flex gap-2">
+            <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm">Filter</button>
+            <a href="{{ route('admin.purchases.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded text-sm inline-flex items-center">Clear</a>
+        </div>
+    </form>
+</div>
+
 <!-- Dashboard Statistics -->
 
 {{-- Overall Summary --}}

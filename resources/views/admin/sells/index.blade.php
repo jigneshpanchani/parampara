@@ -16,6 +16,44 @@
     </a>
 </div>
 
+<div class="bg-white rounded-lg shadow p-4 mb-6">
+    <form method="GET" action="{{ route('admin.sells.index') }}" class="flex flex-wrap items-end gap-4">
+        <div>
+            <label for="date_from" class="block text-sm font-medium text-gray-700 mb-1">From date</label>
+            <input type="date" name="date_from" id="date_from" value="{{ request('date_from') }}"
+                class="rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+        </div>
+        <div>
+            <label for="date_to" class="block text-sm font-medium text-gray-700 mb-1">To date</label>
+            <input type="date" name="date_to" id="date_to" value="{{ request('date_to') }}"
+                class="rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+        </div>
+        <div>
+            <label for="payment_mode" class="block text-sm font-medium text-gray-700 mb-1">Payment mode</label>
+            <select name="payment_mode" id="payment_mode" class="rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm min-w-[140px]">
+                <option value="">All</option>
+                <option value="cash" {{ request('payment_mode') === 'cash' ? 'selected' : '' }}>Cash</option>
+                <option value="upi" {{ request('payment_mode') === 'upi' ? 'selected' : '' }}>UPI</option>
+                <option value="gpay" {{ request('payment_mode') === 'gpay' ? 'selected' : '' }}>G-Pay</option>
+                <option value="mix" {{ request('payment_mode') === 'mix' ? 'selected' : '' }}>Mix</option>
+            </select>
+        </div>
+        <div>
+            <label for="payment_status" class="block text-sm font-medium text-gray-700 mb-1">Payment status</label>
+            <select name="payment_status" id="payment_status" class="rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm min-w-[130px]">
+                <option value="">All</option>
+                <option value="paid" {{ request('payment_status') === 'paid' ? 'selected' : '' }}>Paid</option>
+                <option value="partial" {{ request('payment_status') === 'partial' ? 'selected' : '' }}>Partial</option>
+                <option value="pending" {{ request('payment_status') === 'pending' ? 'selected' : '' }}>Pending</option>
+            </select>
+        </div>
+        <div class="flex gap-2">
+            <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm">Filter</button>
+            <a href="{{ route('admin.sells.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded text-sm inline-flex items-center">Clear</a>
+        </div>
+    </form>
+</div>
+
 @if ($sells->isEmpty())
     <div class="bg-white rounded-lg shadow p-6 text-center">
         <p class="text-gray-600">No sales found. <a href="{{ route('admin.sells.create') }}" class="text-blue-500 hover:underline">Record one now</a></p>
@@ -103,7 +141,10 @@
                                 @if($sell->onlineSellInvoice)
                                     <a href="{{ route('admin.sell-invoices.show', $sell->onlineSellInvoice) }}" class="font-mono text-purple-700 hover:underline" title="Online invoice">{{ $sell->onlineSellInvoice->invoice_number }}</a>
                                 @endif
-                                @if(!$sell->cashSellInvoice && !$sell->onlineSellInvoice)
+                                @if($sell->mixSellInvoice)
+                                    <a href="{{ route('admin.sell-invoices.show', $sell->mixSellInvoice) }}" class="font-mono text-indigo-700 hover:underline" title="Mix invoice">{{ $sell->mixSellInvoice->invoice_number }}</a>
+                                @endif
+                                @if(!$sell->cashSellInvoice && !$sell->onlineSellInvoice && !$sell->mixSellInvoice)
                                     <span class="text-gray-400">—</span>
                                 @endif
                             </div>

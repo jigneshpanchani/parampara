@@ -12,6 +12,7 @@ use App\Services\PurchaseService;
 use App\Services\StockService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -24,17 +25,33 @@ class PurchaseController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
-        $purchases = Purchase::with('items', 'payments')
-            ->orderBy('purchase_date', 'desc')
-            ->get();
+        $query = Purchase::with('items', 'payments')->orderBy('purchase_date', 'desc');
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('purchase_date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('purchase_date', '<=', $request->date_to);
+        }
+        if ($request->filled('bill_type') && in_array($request->bill_type, ['gst', 'without_gst'], true)) {
+            $query->where('bill_type', $request->bill_type);
+        }
+
+        $purchases = $query->get();
+
+        if ($request->filled('payment_status') && in_array($request->payment_status, ['paid', 'partial', 'pending'], true)) {
+            $purchases = $purchases->filter(function (Purchase $p) use ($request) {
+                return $p->getPaymentStatus() === $request->payment_status;
+            })->values();
+        }
 
         $totalPurchases = $purchases->sum('total_amount');
         $totalPaid      = $purchases->sum(fn ($p) => $p->getTotalPaidAmount());
         $totalPending   = $totalPurchases - $totalPaid;
 
-        // Split by bill type
+        // Split by bill type (within filtered set)
         $gstPurchases    = $purchases->where('bill_type', 'gst');
         $nonGstPurchases = $purchases->where('bill_type', 'without_gst');
 

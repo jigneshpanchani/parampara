@@ -13,7 +13,7 @@
 <div class="mb-6 flex justify-between items-center flex-wrap gap-4">
     <div>
         <h2 class="text-3xl font-bold text-gray-800">🧾 Sell Invoices</h2>
-        <p class="text-gray-600 text-sm mt-1">Two types per day: <strong>cash</strong> and <strong>online</strong> (UPI / G-Pay), including mix splits.</p>
+        <p class="text-gray-600 text-sm mt-1">Three types per day: <strong>Cash</strong>, <strong>Online</strong> (UPI / G-Pay), <strong>Mix</strong> (combined cash + online on one sale).</p>
     </div>
     <a href="{{ route('admin.sell-invoices.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
         + Generate Invoice
@@ -41,6 +41,8 @@
                     <td class="px-6 py-4 text-sm">
                         @if($inv->invoice_type === 'online')
                             <span class="px-2 py-1 rounded text-xs font-semibold bg-purple-100 text-purple-800">Online</span>
+                        @elseif($inv->invoice_type === 'mix')
+                            <span class="px-2 py-1 rounded text-xs font-semibold bg-indigo-100 text-indigo-800">Mix</span>
                         @else
                             <span class="px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-800">Cash</span>
                         @endif
@@ -53,10 +55,10 @@
                     <td class="px-6 py-4 text-sm text-center">
                         <a href="{{ route('admin.sell-invoices.show', $inv) }}" class="text-blue-600 hover:underline mr-3">View</a>
                         <a href="{{ route('admin.sell-invoices.export', $inv) }}" class="text-green-600 hover:underline mr-3">Excel</a>
-                        <form action="{{ route('admin.sell-invoices.destroy', $inv) }}" method="POST" class="inline" onsubmit="return confirm('Delete this invoice? Matching sales can be invoiced again for this type.');">
+                        <form action="{{ route('admin.sell-invoices.destroy', $inv) }}" method="POST" class="inline" onsubmit="return confirm('Remove this invoice from the list? Sales can be invoiced again for this type. The record is kept internally.');">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="text-red-600 hover:underline">Delete</button>
+                            <button type="submit" class="text-red-600 hover:underline">Remove</button>
                         </form>
                     </td>
                 </tr>
