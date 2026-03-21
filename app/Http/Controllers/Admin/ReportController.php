@@ -108,17 +108,137 @@ class ReportController extends Controller
     /**
      * Display purchases report
      */
-    public function purchases()
+    public function purchases(Request $request)
     {
-        $purchases = Purchase::with('items.product')->latest()->get();
+        $purchases = $this->getPurchasesForReport($request);
         $totalPurchases = $purchases->sum('total_amount');
         $totalItems = $purchases->flatMap->items->count();
+
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+        $paidStatus = $request->input('paid_status');
 
         return view('admin.reports.purchases', compact(
             'purchases',
             'totalPurchases',
-            'totalItems'
+            'totalItems',
+            'dateFrom',
+            'dateTo',
+            'paidStatus'
         ));
+    }
+
+    /**
+     * Apply date + paid-status filters (same logic as report + export).
+     */
+    protected function getPurchasesForReport(Request $request)
+    {
+        $query = Purchase::with(['items.product', 'payments'])->orderBy('purchase_date', 'desc');
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('purchase_date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('purchase_date', '<=', $request->date_to);
+        }
+
+        $purchases = $query->get();
+
+        if ($request->filled('paid_status') && $request->paid_status !== '') {
+            $purchases = $purchases->filter(function ($purchase) use ($request) {
+                return $purchase->getPaymentStatus() === $request->paid_status;
+            })->values();
+        }
+
+        return $purchases;
+    }
+
+    /**
+     * Export purchases report to Excel (XLSX).
+     */
+    public function exportPurchases(Request $request)
+    {
+        $purchases = $this->getPurchasesForReport($request);
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+        $paidStatus = $request->input('paid_status');
+
+        $filterParts = [];
+        if ($dateFrom || $dateTo) {
+            $fromLabel = $dateFrom ? \Carbon\Carbon::parse($dateFrom)->format('d M Y') : '—';
+            $toLabel = $dateTo ? \Carbon\Carbon::parse($dateTo)->format('d M Y') : '—';
+            $filterParts[] = "Date: {$fromLabel} to {$toLabel}";
+        }
+        if ($paidStatus !== null && $paidStatus !== '') {
+            $filterParts[] = 'Paid status: ' . ucfirst($paidStatus);
+        }
+        $filtersLine = count($filterParts) ? implode(' | ', $filterParts) : 'All records (no filters)';
+
+        $generatedAt = now()->format('d M Y H:i');
+        $fileName = 'Purchases_Report_' . now()->format('Y-m-d_His') . '.xlsx';
+
+        return response()->streamDownload(function () use ($purchases, $filtersLine, $generatedAt) {
+            $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+
+            $sheet->setCellValue('A1', 'Purchases Report');
+            $sheet->mergeCells('A1:I1');
+            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+            $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
+
+            $sheet->setCellValue('A2', 'Generated: ' . $generatedAt);
+            $sheet->mergeCells('A2:I2');
+            $sheet->getStyle('A2')->getFont()->setItalic(true);
+
+            $sheet->setCellValue('A3', 'Filters: ' . $filtersLine);
+            $sheet->mergeCells('A3:I3');
+            $sheet->getStyle('A3')->getFont()->setSize(11);
+
+            $headers = ['Date', 'Supplier', 'Items', 'Amount', 'Transport', 'Total', 'Due Date', 'Status', 'Line items'];
+            $row = 5;
+            $col = 1;
+            foreach ($headers as $header) {
+                $sheet->setCellValueByColumnAndRow($col, $row, $header);
+                $sheet->getStyleByColumnAndRow($col, $row)->getFont()->setBold(true);
+                $col++;
+            }
+
+            $row = 6;
+            if ($purchases->isEmpty()) {
+                $sheet->setCellValue('A6', 'No purchases match the selected filters.');
+                $sheet->mergeCells('A6:I6');
+            } else {
+                foreach ($purchases as $purchase) {
+                    $itemsCount = $purchase->items->count();
+                    $itemsAmount = $purchase->items->sum('total_price');
+                    $payStatus = ucfirst($purchase->getPaymentStatus());
+                    $lineItems = $purchase->items->map(function ($item) {
+                        $name = $item->product?->product_name ?? 'Deleted Product';
+                        return $name . ' - ' . $item->quantity . ' × ₹' . number_format($item->purchase_price, 2) . ' = ₹' . number_format($item->total_price, 2);
+                    })->implode('; ');
+
+                    $sheet->setCellValueByColumnAndRow(1, $row, $purchase->purchase_date->format('d M Y'));
+                    $sheet->setCellValueByColumnAndRow(2, $row, $purchase->supplier_name);
+                    $sheet->setCellValueByColumnAndRow(3, $row, $itemsCount);
+                    $sheet->setCellValueByColumnAndRow(4, $row, (float) $itemsAmount);
+                    $sheet->setCellValueByColumnAndRow(5, $row, (float) ($purchase->transportation_cost ?? 0));
+                    $sheet->setCellValueByColumnAndRow(6, $row, (float) $purchase->total_amount);
+                    $sheet->setCellValueByColumnAndRow(7, $row, $purchase->bill_due_date ? $purchase->bill_due_date->format('d M Y') : '-');
+                    $sheet->setCellValueByColumnAndRow(8, $row, $payStatus);
+                    $sheet->setCellValueByColumnAndRow(9, $row, $lineItems);
+                    $row++;
+                }
+            }
+
+            for ($i = 1; $i <= 9; $i++) {
+                $sheet->getColumnDimensionByColumn($i)->setAutoSize(true);
+            }
+
+            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, $fileName, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
     }
 
     /**

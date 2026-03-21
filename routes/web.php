@@ -105,6 +105,7 @@ Route::middleware('auth')->group(function () {
         Route::get('reports/sales', [ReportController::class, 'sales'])->name('reports.sales');
         Route::post('reports/sales/export', [ReportController::class, 'exportSales'])->name('reports.sales.export');
         Route::get('reports/purchases', [ReportController::class, 'purchases'])->name('reports.purchases');
+        Route::get('reports/purchases/export', [ReportController::class, 'exportPurchases'])->name('reports.purchases.export');
         Route::get('reports/stock', [ReportController::class, 'stock'])->name('reports.stock');
         Route::get('settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('settings.index');
         Route::put('settings', [\App\Http\Controllers\Admin\SettingsController::class, 'update'])->name('settings.update');
