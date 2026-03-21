@@ -53,7 +53,12 @@
                     <td class="px-6 py-4 text-sm text-right text-blue-700">₹{{ number_format($inv->cash_total, 2) }}</td>
                     <td class="px-6 py-4 text-sm text-right text-purple-700">₹{{ number_format($inv->online_total, 2) }}</td>
                     <td class="px-6 py-4 text-sm text-center">
-                        <a href="{{ route('admin.sell-invoices.show', $inv) }}" class="text-blue-600 hover:underline mr-3">View</a>
+                        @php $firstSellId = $firstSellByInvoice[$inv->id] ?? null; @endphp
+                        @if ($firstSellId)
+                            <a href="{{ route('admin.sells.show', $firstSellId) }}" class="text-blue-600 hover:underline mr-3">View sell</a>
+                        @else
+                            <span class="text-gray-400 mr-3" title="No linked sale">—</span>
+                        @endif
                         <a href="{{ route('admin.sell-invoices.export', $inv) }}" class="text-green-600 hover:underline mr-3">Excel</a>
                         <form action="{{ route('admin.sell-invoices.destroy', $inv) }}" method="POST" class="inline" onsubmit="return confirm('Remove this invoice from the list? Sales can be invoiced again for this type. The record is kept internally.');">
                             @csrf

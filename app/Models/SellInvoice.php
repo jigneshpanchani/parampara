@@ -31,6 +31,7 @@ class SellInvoice extends Model
 
     protected $casts = [
         'invoice_date' => 'date',
+        'invoice_type' => 'string',
         'total_amount' => 'float',
         'cash_total' => 'float',
         'online_total' => 'float',
@@ -38,15 +39,62 @@ class SellInvoice extends Model
     ];
 
     /**
+     * Foreign key on `sells` for this invoice type (normalized — avoids Eloquent caching wrong hasMany FK).
+     */
+    public function invoiceForeignKey(): string
+    {
+        $type = strtolower(trim((string) ($this->attributes['invoice_type'] ?? $this->invoice_type ?? '')));
+
+        return match ($type) {
+            'online' => 'online_sell_invoice_id',
+            'mix' => 'mix_sell_invoice_id',
+            default => 'cash_sell_invoice_id',
+        };
+    }
+
+    /**
      * Related sells — FK depends on invoice type (cash / online / mix are separate).
      */
     public function sells()
     {
-        return match ($this->invoice_type) {
-            self::TYPE_ONLINE => $this->hasMany(Sell::class, 'online_sell_invoice_id'),
-            self::TYPE_MIX => $this->hasMany(Sell::class, 'mix_sell_invoice_id'),
-            default => $this->hasMany(Sell::class, 'cash_sell_invoice_id'),
-        };
+        return $this->hasMany(Sell::class, $this->invoiceForeignKey());
+    }
+
+    /**
+     * Load sells for view/export.
+     * Uses all three possible FK columns — does not depend on invoice_type matching DB (fixes empty online views when type/FK were inconsistent).
+     */
+    public function loadSellsForDisplay(): Collection
+    {
+        $this->unsetRelation('sells');
+
+        $invoiceId = (int) $this->id;
+
+        $sells = Sell::query()
+            ->with('items.product')
+            ->where(function ($q) use ($invoiceId) {
+                $q->where('cash_sell_invoice_id', $invoiceId)
+                    ->orWhere('online_sell_invoice_id', $invoiceId)
+                    ->orWhere('mix_sell_invoice_id', $invoiceId);
+            })
+            ->orderBy('id')
+            ->get();
+
+        $this->setRelation('sells', $sells);
+
+        return $sells;
+    }
+
+    /**
+     * Clear all invoice FKs on sells pointing to this invoice before soft-delete.
+     */
+    public function unlinkSellsFromInvoice(): void
+    {
+        $id = $this->id;
+
+        Sell::where('cash_sell_invoice_id', $id)->update(['cash_sell_invoice_id' => null]);
+        Sell::where('online_sell_invoice_id', $id)->update(['online_sell_invoice_id' => null]);
+        Sell::where('mix_sell_invoice_id', $id)->update(['mix_sell_invoice_id' => null]);
     }
 
     public function getInvoiceTypeLabelAttribute(): string

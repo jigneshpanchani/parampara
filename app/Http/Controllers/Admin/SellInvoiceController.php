@@ -22,7 +22,31 @@ class SellInvoiceController extends Controller
             ->orderBy('invoice_type')
             ->paginate(20);
 
-        return view('admin.sell-invoices.index', compact('invoices'));
+        $invoiceIds = $invoices->pluck('id');
+        $firstSellByInvoice = [];
+        if ($invoiceIds->isNotEmpty()) {
+            $ids = $invoiceIds->all();
+            $sells = Sell::query()
+                ->where(function ($q) use ($ids) {
+                    $q->whereIn('cash_sell_invoice_id', $ids)
+                        ->orWhereIn('online_sell_invoice_id', $ids)
+                        ->orWhereIn('mix_sell_invoice_id', $ids);
+                })
+                ->get(['id', 'cash_sell_invoice_id', 'online_sell_invoice_id', 'mix_sell_invoice_id']);
+
+            foreach ($sells as $sell) {
+                foreach (['cash_sell_invoice_id', 'online_sell_invoice_id', 'mix_sell_invoice_id'] as $fk) {
+                    $iid = $sell->{$fk};
+                    if ($iid !== null && in_array($iid, $ids, true)) {
+                        if (! isset($firstSellByInvoice[$iid]) || $sell->id < $firstSellByInvoice[$iid]) {
+                            $firstSellByInvoice[$iid] = $sell->id;
+                        }
+                    }
+                }
+            }
+        }
+
+        return view('admin.sell-invoices.index', compact('invoices', 'firstSellByInvoice'));
     }
 
     public function create(Request $request): View
@@ -131,9 +155,7 @@ class SellInvoiceController extends Controller
 
     public function show(SellInvoice $sellInvoice): View
     {
-        $sellInvoice->load(['sells' => function ($q) {
-            $q->with('items.product')->orderBy('id');
-        }]);
+        $sellInvoice->loadSellsForDisplay();
 
         return view('admin.sell-invoices.show', compact('sellInvoice'));
     }
@@ -144,12 +166,7 @@ class SellInvoiceController extends Controller
     public function destroy(SellInvoice $sellInvoice): RedirectResponse
     {
         DB::transaction(function () use ($sellInvoice) {
-            $fk = match ($sellInvoice->invoice_type) {
-                SellInvoice::TYPE_ONLINE => 'online_sell_invoice_id',
-                SellInvoice::TYPE_MIX => 'mix_sell_invoice_id',
-                default => 'cash_sell_invoice_id',
-            };
-            Sell::where($fk, $sellInvoice->id)->update([$fk => null]);
+            $sellInvoice->unlinkSellsFromInvoice();
             $sellInvoice->delete();
         });
 
@@ -160,9 +177,7 @@ class SellInvoiceController extends Controller
 
     public function export(SellInvoice $sellInvoice): StreamedResponse
     {
-        $sellInvoice->load(['sells' => function ($q) {
-            $q->with('items.product')->orderBy('id');
-        }]);
+        $sellInvoice->loadSellsForDisplay();
 
         $fileName = $sellInvoice->invoice_number . '_' . now()->format('Y-m-d_His') . '.xlsx';
 
