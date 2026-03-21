@@ -42,6 +42,16 @@ class Sell extends Model
         return $this->hasMany(SellReturn::class);
     }
 
+    public function cashSellInvoice()
+    {
+        return $this->belongsTo(SellInvoice::class, 'cash_sell_invoice_id');
+    }
+
+    public function onlineSellInvoice()
+    {
+        return $this->belongsTo(SellInvoice::class, 'online_sell_invoice_id');
+    }
+
     /**
      * Get formatted total amount.
      */

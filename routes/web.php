@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\StockController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\PurchaseController;
 use App\Http\Controllers\Admin\SellController;
+use App\Http\Controllers\Admin\SellInvoiceController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ExpenseController;
 use App\Http\Controllers\Admin\PurchaseReturnController;
@@ -93,6 +94,8 @@ Route::middleware('auth')->group(function () {
         Route::get('purchases/{purchase}/payment-details', [PurchaseController::class, 'getPaymentDetails'])->name('purchases.paymentDetails');
         Route::post('purchases/{purchase}/add-payment', [PurchaseController::class, 'addPayment'])->name('purchases.addPayment');
         Route::resource('sells', SellController::class);
+        Route::get('sell-invoices/{sellInvoice}/export', [SellInvoiceController::class, 'export'])->name('sell-invoices.export');
+        Route::resource('sell-invoices', SellInvoiceController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
         Route::resource('expense-categories', \App\Http\Controllers\Admin\ExpenseCategoryController::class);
         Route::get('expense-categories-list', [\App\Http\Controllers\Admin\ExpenseCategoryController::class, 'getCategories'])->name('expense-categories.list');
         Route::resource('expenses', ExpenseController::class);

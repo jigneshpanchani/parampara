@@ -24,7 +24,7 @@ class SellController extends Controller
      */
     public function index(): View
     {
-        $sells = Sell::with('items.product')
+        $sells = Sell::with(['items.product', 'cashSellInvoice', 'onlineSellInvoice'])
             ->orderBy('sell_date', 'desc')
             ->paginate(20);
 
@@ -77,7 +77,7 @@ class SellController extends Controller
      */
     public function show(Sell $sell): View
     {
-        $sell->load('items.product');
+        $sell->load(['items.product', 'cashSellInvoice', 'onlineSellInvoice']);
         return view('admin.sells.show', compact('sell'));
     }
 

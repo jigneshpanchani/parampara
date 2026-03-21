@@ -22,6 +22,22 @@
                         <dt class="text-sm text-gray-600">Sale Date</dt>
                         <dd class="text-sm font-semibold text-gray-900">{{ $sell->sell_date->format('d M Y') }}</dd>
                     </div>
+                    @if ($sell->cashSellInvoice)
+                    <div class="flex justify-between items-center">
+                        <dt class="text-sm text-gray-600">Cash invoice</dt>
+                        <dd>
+                            <a href="{{ route('admin.sell-invoices.show', $sell->cashSellInvoice) }}" class="text-sm font-mono font-semibold text-blue-600 hover:underline">{{ $sell->cashSellInvoice->invoice_number }}</a>
+                        </dd>
+                    </div>
+                    @endif
+                    @if ($sell->onlineSellInvoice)
+                    <div class="flex justify-between items-center">
+                        <dt class="text-sm text-gray-600">Online invoice</dt>
+                        <dd>
+                            <a href="{{ route('admin.sell-invoices.show', $sell->onlineSellInvoice) }}" class="text-sm font-mono font-semibold text-purple-600 hover:underline">{{ $sell->onlineSellInvoice->invoice_number }}</a>
+                        </dd>
+                    </div>
+                    @endif
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-600">Seller Name</dt>
                         <dd class="text-sm font-semibold text-gray-900">{{ $sell->seller_name ?? '-' }}</dd>

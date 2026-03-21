@@ -37,6 +37,7 @@
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Pending</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Notes</th>
+                    <th class="px-6 py-3 text-center text-sm font-semibold text-gray-700">Invoices</th>
                     <th class="px-6 py-3 text-center text-sm font-semibold text-gray-700">Actions</th>
                 </tr>
             </thead>
@@ -93,6 +94,19 @@
                             @else
                                 <span class="text-gray-400">-</span>
                             @endif
+                        </td>
+                        <td class="px-6 py-4 text-sm text-center">
+                            <div class="flex flex-col gap-1 items-center text-xs">
+                                @if($sell->cashSellInvoice)
+                                    <a href="{{ route('admin.sell-invoices.show', $sell->cashSellInvoice) }}" class="font-mono text-blue-700 hover:underline" title="Cash invoice">{{ $sell->cashSellInvoice->invoice_number }}</a>
+                                @endif
+                                @if($sell->onlineSellInvoice)
+                                    <a href="{{ route('admin.sell-invoices.show', $sell->onlineSellInvoice) }}" class="font-mono text-purple-700 hover:underline" title="Online invoice">{{ $sell->onlineSellInvoice->invoice_number }}</a>
+                                @endif
+                                @if(!$sell->cashSellInvoice && !$sell->onlineSellInvoice)
+                                    <span class="text-gray-400">—</span>
+                                @endif
+                            </div>
                         </td>
                         <td class="px-6 py-4 text-sm flex gap-3 justify-center">
                             <a href="{{ route('admin.sells.show', $sell) }}" class="text-green-500 hover:text-green-700 transition" title="View">
