@@ -216,6 +216,11 @@ function updateTotals() {
     if (totalAmountInput) {
         totalAmountInput.value = totalAmount.toFixed(2);
     }
+
+    // Auto-fill Amount Paid with total (skip mix — it's driven by cash+online fields)
+    if (!paymentModeSelect || paymentModeSelect.value !== 'mix') {
+        amountPaidInput.value = totalAmount.toFixed(2);
+    }
 }
 
 function attachRowListeners(row) {
@@ -253,24 +258,24 @@ const onlineAmountInput = document.getElementById('online_amount');
 
 function handlePaymentModeChange() {
     const paymentMode = paymentModeSelect.value;
+    const currentTotal = parseFloat(document.getElementById('total_amount').value) || 0;
 
     if (paymentMode === 'mix') {
-        // Show mix payment details
         mixPaymentDetails.style.display = 'grid';
         amountPaidContainer.style.display = 'none';
         amountPaidInput.removeAttribute('required');
         cashAmountInput.setAttribute('required', 'required');
         onlineAmountInput.setAttribute('required', 'required');
     } else {
-        // Hide mix payment details
         mixPaymentDetails.style.display = 'none';
         amountPaidContainer.style.display = 'block';
         amountPaidInput.setAttribute('required', 'required');
         cashAmountInput.removeAttribute('required');
         onlineAmountInput.removeAttribute('required');
-        // Reset mix amounts
         cashAmountInput.value = 0;
         onlineAmountInput.value = 0;
+
+        amountPaidInput.value = currentTotal.toFixed(2);
     }
 }
 
