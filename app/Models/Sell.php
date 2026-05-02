@@ -42,6 +42,37 @@ class Sell extends Model
         return $this->hasMany(SellReturn::class);
     }
 
+    public function sellPayments()
+    {
+        return $this->hasMany(SellPayment::class);
+    }
+
+    public function getTotalPaidFromPayments(): float
+    {
+        return (float) $this->sellPayments()->sum('amount');
+    }
+
+    public function getRemainingAmount(): float
+    {
+        return max(0, $this->total_amount - $this->amount_paid - $this->getTotalPaidFromPayments());
+    }
+
+    public function recalculatePaymentStatus(): void
+    {
+        $totalPaid = $this->amount_paid + $this->getTotalPaidFromPayments();
+        if ($totalPaid <= 0) {
+            $status = 'pending';
+        } elseif ($totalPaid >= $this->total_amount) {
+            $status = 'paid';
+        } else {
+            $status = 'partial';
+        }
+        $this->update([
+            'payment_status' => $status,
+            'pending_amount' => max(0, $this->total_amount - $totalPaid),
+        ]);
+    }
+
     public function cashSellInvoice()
     {
         return $this->belongsTo(SellInvoice::class, 'cash_sell_invoice_id');

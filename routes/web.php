@@ -94,6 +94,8 @@ Route::middleware('auth')->group(function () {
         Route::get('purchases/{purchase}/payment-details', [PurchaseController::class, 'getPaymentDetails'])->name('purchases.paymentDetails');
         Route::post('purchases/{purchase}/add-payment', [PurchaseController::class, 'addPayment'])->name('purchases.addPayment');
         Route::resource('sells', SellController::class);
+        Route::get('sells/{sell}/payment-details', [SellController::class, 'getPaymentDetails'])->name('sells.paymentDetails');
+        Route::post('sells/{sell}/add-payment', [SellController::class, 'addPayment'])->name('sells.addPayment');
         Route::get('sell-invoices/{sellInvoice}/export', [SellInvoiceController::class, 'export'])->name('sell-invoices.export');
         Route::resource('sell-invoices', SellInvoiceController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
         Route::resource('expense-categories', \App\Http\Controllers\Admin\ExpenseCategoryController::class);

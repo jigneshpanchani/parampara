@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\AddSellPaymentRequest;
 use App\Http\Requests\Admin\StoreSellRequest;
 use App\Http\Requests\Admin\UpdateSellRequest;
 use App\Models\Product;
 use App\Models\Sell;
 use App\Services\SellService;
 use App\Services\StockService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -157,5 +159,80 @@ class SellController extends Controller
 
         return redirect()->route('admin.sells.index')
             ->with('success', 'Sale deleted successfully.');
+    }
+
+    /**
+     * Get payment details for a sell (JSON).
+     */
+    public function getPaymentDetails(Sell $sell): JsonResponse
+    {
+        $sell->load('items.product', 'sellPayments');
+
+        $items = $sell->items->map(fn ($item) => [
+            'product_name' => $item->product->product_name,
+            'quantity' => $item->quantity,
+            'selling_price' => number_format($item->selling_price, 2),
+            'total_price' => number_format($item->total_price, 2),
+        ]);
+
+        $payments = $sell->sellPayments->map(fn ($payment) => [
+            'payment_date' => $payment->payment_date->format('d M Y'),
+            'amount' => number_format($payment->amount, 2),
+            'payment_method' => $payment->getPaymentMethodLabel(),
+            'reference_number' => $payment->reference_number ?? '-',
+            'notes' => $payment->notes ?? '-',
+        ]);
+
+        $totalPaidFromPayments = $sell->getTotalPaidFromPayments();
+        $totalPaid = $sell->amount_paid + $totalPaidFromPayments;
+        $remaining = max(0, $sell->total_amount - $totalPaid);
+
+        return response()->json([
+            'success' => true,
+            'sell' => [
+                'id' => $sell->id,
+                'seller_name' => $sell->seller_name ?? '-',
+                'sell_date' => $sell->sell_date->format('d M Y'),
+                'total_amount' => number_format($sell->total_amount, 2),
+                'initial_paid' => number_format($sell->amount_paid, 2),
+                'payments_total' => number_format($totalPaidFromPayments, 2),
+                'total_paid' => number_format($totalPaid, 2),
+                'remaining_amount' => number_format($remaining, 2),
+                'payment_status' => ucfirst($sell->payment_status),
+                'payment_mode' => $sell->payment_mode_label,
+            ],
+            'items' => $items,
+            'payments' => $payments,
+        ]);
+    }
+
+    /**
+     * Add payment for a sell.
+     */
+    public function addPayment(AddSellPaymentRequest $request, Sell $sell): JsonResponse
+    {
+        $validated = $request->validated();
+
+        $sell->sellPayments()->create([
+            'payment_date' => $validated['payment_date'],
+            'amount' => $validated['amount'],
+            'payment_method' => $validated['payment_method'],
+            'reference_number' => $validated['reference_number'] ?? null,
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        $sell->recalculatePaymentStatus();
+        $sell->refresh();
+
+        $totalPaid = $sell->amount_paid + $sell->getTotalPaidFromPayments();
+        $remaining = max(0, $sell->total_amount - $totalPaid);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment recorded successfully.',
+            'total_paid' => number_format($totalPaid, 2),
+            'remaining_amount' => number_format($remaining, 2),
+            'payment_status' => ucfirst($sell->payment_status),
+        ]);
     }
 }
