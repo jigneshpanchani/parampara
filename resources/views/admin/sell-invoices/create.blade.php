@@ -3,10 +3,6 @@
 @section('title', 'Generate Sell Invoice')
 
 @section('content')
-@if (session('error'))
-    <div class="mb-4 p-4 bg-red-100 text-red-700 rounded-lg">{{ session('error') }}</div>
-@endif
-
 <div class="mb-6">
     <h2 class="text-3xl font-bold text-gray-800">Generate daily sell invoice</h2>
     <p class="text-gray-600 text-sm mt-2">Choose <strong>one type per day</strong> (up to three per date: Cash, Online, Mix).</p>

@@ -20,7 +20,11 @@
                     @enderror
                 </div>
                 <div>
-                    <label for="seller_name" class="block text-sm font-semibold text-gray-700 mb-2">Seller Name <span class="text-gray-500 text-xs">(Optional)</span></label>
+                    <label for="seller_name" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Seller Name
+                        <span id="seller_name_hint_optional" class="text-gray-500 text-xs">(Optional)</span>
+                        <span id="seller_name_hint_required" class="text-red-500 text-xs" style="display: none;">*</span>
+                    </label>
                     <input type="text" id="seller_name" name="seller_name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter seller name" value="{{ old('seller_name', $sell->seller_name) }}">
                     @error('seller_name')
                         <span class="text-red-500 text-sm">{{ $message }}</span>
@@ -252,6 +256,9 @@ const amountPaidContainer = document.getElementById('amount_paid_container');
 const amountPaidInput = document.getElementById('amount_paid');
 const cashAmountInput = document.getElementById('cash_amount');
 const onlineAmountInput = document.getElementById('online_amount');
+const sellerNameInput = document.getElementById('seller_name');
+const sellerNameHintOptional = document.getElementById('seller_name_hint_optional');
+const sellerNameHintRequired = document.getElementById('seller_name_hint_required');
 
 function handlePaymentModeChange() {
     const paymentMode = paymentModeSelect.value;
@@ -262,6 +269,7 @@ function handlePaymentModeChange() {
         onlineAmountContainer.style.display = 'block';
         amountPaidContainer.style.display = 'none';
         amountPaidInput.removeAttribute('required');
+        amountPaidInput.removeAttribute('min');
         cashAmountInput.setAttribute('required', 'required');
         onlineAmountInput.setAttribute('required', 'required');
     } else {
@@ -272,8 +280,54 @@ function handlePaymentModeChange() {
         amountPaidInput.setAttribute('required', 'required');
         cashAmountInput.removeAttribute('required');
         onlineAmountInput.removeAttribute('required');
+
+        // cash/upi/gpay => Amount Paid must be > 0; Pay Later allows 0
+        if (paymentMode === 'cash' || paymentMode === 'upi' || paymentMode === 'gpay') {
+            amountPaidInput.setAttribute('min', '0.01');
+        } else {
+            amountPaidInput.setAttribute('min', '0');
+        }
+    }
+
+    // Pay Later (empty) => Seller Name required
+    if (paymentMode === '') {
+        sellerNameInput.setAttribute('required', 'required');
+        sellerNameHintOptional.style.display = 'none';
+        sellerNameHintRequired.style.display = 'inline';
+    } else {
+        sellerNameInput.removeAttribute('required');
+        sellerNameHintOptional.style.display = 'inline';
+        sellerNameHintRequired.style.display = 'none';
     }
 }
+
+function validatePaymentAmounts() {
+    const paymentMode = paymentModeSelect.value;
+
+    if (paymentMode === 'cash' || paymentMode === 'upi' || paymentMode === 'gpay') {
+        const paid = parseFloat(amountPaidInput.value) || 0;
+        if (paid <= 0) {
+            alert('Amount Paid must be greater than 0 for ' + paymentMode.toUpperCase() + ' payment.');
+            amountPaidInput.focus();
+            return false;
+        }
+    } else if (paymentMode === 'mix') {
+        const cash = parseFloat(cashAmountInput.value) || 0;
+        const online = parseFloat(onlineAmountInput.value) || 0;
+        if (cash + online <= 0) {
+            alert('For Mix payment, Cash Amount or Online Amount must be greater than 0.');
+            cashAmountInput.focus();
+            return false;
+        }
+    }
+    return true;
+}
+
+document.querySelector('form[action="{{ route('admin.sells.update', $sell) }}"]').addEventListener('submit', function(event) {
+    if (!validatePaymentAmounts()) {
+        event.preventDefault();
+    }
+});
 
 function updateAmountPaidFromMix() {
     const cashAmount = parseFloat(cashAmountInput.value) || 0;

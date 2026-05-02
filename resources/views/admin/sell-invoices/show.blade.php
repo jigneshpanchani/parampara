@@ -3,10 +3,6 @@
 @section('title', $sellInvoice->invoice_number)
 
 @section('content')
-@if (session('success'))
-    <div class="mb-4 p-4 bg-green-100 text-green-700 rounded-lg">{{ session('success') }}</div>
-@endif
-
 <div class="mb-6 flex justify-between items-start flex-wrap gap-4">
     <div>
         <div class="flex items-center gap-3 flex-wrap">

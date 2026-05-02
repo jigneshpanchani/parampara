@@ -3,12 +3,6 @@
 @section('title', 'Products')
 
 @section('content')
-@if ($message = session('success'))
-    <div class="mb-4 p-4 bg-green-100 text-green-700 rounded-lg">{{ $message }}</div>
-@endif
-@if ($message = session('error'))
-    <div class="mb-4 p-4 bg-red-100 text-red-700 rounded-lg">{{ $message }}</div>
-@endif
 <div class="mb-6 flex justify-between items-center">
     <h2 class="text-3xl font-bold text-gray-800">📦 Products</h2>
     <a href="{{ route('admin.products.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">

@@ -8,18 +8,6 @@
     <div class="lg:col-span-3 bg-white rounded-lg shadow p-6">
         <h2 class="text-2xl font-bold text-gray-800 mb-6">⚙️ Company Settings & Profile</h2>
 
-        @if ($message = Session::get('success'))
-            <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
-                {{ $message }}
-            </div>
-        @endif
-
-        @if ($message = Session::get('error'))
-            <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-                {{ $message }}
-            </div>
-        @endif
-
         <form action="{{ route('admin.settings.update') }}" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
