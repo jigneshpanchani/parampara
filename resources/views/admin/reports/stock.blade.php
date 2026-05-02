@@ -22,7 +22,7 @@
                 <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Product Name</th>
                 <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Code</th>
                 <th class="px-6 py-3 text-center text-sm font-semibold text-gray-700">Total Purchase</th>
-                <th class="px-6 py-3 text-center text-sm font-semibold text-gray-700">Total Sell</th>
+                <th class="px-6 py-3 text-center text-sm font-semibold text-gray-700">Total Sales</th>
                 <th class="px-6 py-3 text-center text-sm font-semibold text-gray-700">Return</th>
                 <th class="px-6 py-3 text-center text-sm font-semibold text-gray-700">Available Stock</th>
             </tr>

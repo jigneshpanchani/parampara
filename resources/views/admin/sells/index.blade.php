@@ -192,7 +192,7 @@
                     <p id="spSellerName" class="text-sm font-semibold text-gray-800"></p>
                 </div>
                 <div class="flex-1 min-w-max">
-                    <p class="text-gray-600 text-xs font-semibold uppercase">Sell Date</p>
+                    <p class="text-gray-600 text-xs font-semibold uppercase">Sale Date</p>
                     <p id="spSellDate" class="text-sm font-semibold text-gray-800"></p>
                 </div>
                 <div class="flex-1 min-w-max">
@@ -206,9 +206,9 @@
             </div>
         </div>
 
-        <!-- Sell Items -->
+        <!-- Sale Items -->
         <div class="mb-6">
-            <h4 class="text-lg font-semibold text-gray-800 mb-3">Sell Items</h4>
+            <h4 class="text-lg font-semibold text-gray-800 mb-3">Sale Items</h4>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead class="bg-gray-100">

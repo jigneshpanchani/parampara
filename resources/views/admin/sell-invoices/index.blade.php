@@ -1,11 +1,11 @@
 @extends('layouts.admin')
 
-@section('title', 'Sell Invoices')
+@section('title', 'Sales Invoices')
 
 @section('content')
 <div class="mb-6 flex justify-between items-center flex-wrap gap-4">
     <div>
-        <h2 class="text-3xl font-bold text-gray-800">🧾 Sell Invoices</h2>
+        <h2 class="text-3xl font-bold text-gray-800">🧾 Sales Invoices</h2>
         <p class="text-gray-600 text-sm mt-1">Three types per day: <strong>Cash</strong>, <strong>Online</strong> (UPI / G-Pay), <strong>Mix</strong> (combined cash + online on one sale).</p>
     </div>
     <a href="{{ route('admin.sell-invoices.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">

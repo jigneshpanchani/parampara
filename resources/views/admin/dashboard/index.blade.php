@@ -97,11 +97,11 @@
         </div>
     </div>
 
-    <!-- Sell Returns Card -->
+    <!-- Sales Returns Card -->
     <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg shadow p-6 border-l-4 border-indigo-500">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-gray-600 text-sm font-semibold">Sell Returns</p>
+                <p class="text-gray-600 text-sm font-semibold">Sales Returns</p>
                 <p class="text-3xl font-bold text-indigo-600">₹{{ number_format($totalSellReturns, 2) }}</p>
                 <p class="text-xs text-gray-500 mt-1">Customer returns</p>
             </div>

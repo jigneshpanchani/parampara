@@ -1,10 +1,10 @@
 @extends('layouts.admin')
 
-@section('title', 'Generate Sell Invoice')
+@section('title', 'Generate Sales Invoice')
 
 @section('content')
 <div class="mb-6">
-    <h2 class="text-3xl font-bold text-gray-800">Generate daily sell invoice</h2>
+    <h2 class="text-3xl font-bold text-gray-800">Generate daily sales invoice</h2>
     <p class="text-gray-600 text-sm mt-2">Choose <strong>one type per day</strong> (up to three per date: Cash, Online, Mix).</p>
     <ul class="text-gray-600 text-sm mt-2 list-disc ml-6 space-y-1">
         <li><strong>Cash</strong> — sales paid <em>cash only</em>.</li>

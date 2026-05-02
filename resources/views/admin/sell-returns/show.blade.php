@@ -1,12 +1,12 @@
 @extends('layouts.admin')
 
-@section('title', 'Sell Return Details')
+@section('title', 'Sales Return Details')
 
 @section('content')
 <div class="max-w-4xl mx-auto">
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold text-gray-800">Sell Return #{{ $sellReturn->id }}</h2>
+            <h2 class="text-2xl font-bold text-gray-800">Sales Return #{{ $sellReturn->id }}</h2>
             <div class="flex gap-3">
                 <a href="{{ route('admin.sell-returns.edit', $sellReturn) }}" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">Edit</a>
                 <a href="{{ route('admin.sell-returns.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Back</a>

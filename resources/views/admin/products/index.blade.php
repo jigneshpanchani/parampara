@@ -23,7 +23,7 @@
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Product Name</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Code</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Base Price Range</th>
-                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Sell Price</th>
+                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Selling Price</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Stock</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Photo</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
@@ -63,7 +63,7 @@
                             </label>
                         </td>
                         <td class="px-6 py-4 text-sm space-x-3 flex items-center">
-                            <button type="button" class="sell-price-btn text-green-600 hover:text-green-800 text-xl font-bold transition" title="Quick Update Sell Price"
+                            <button type="button" class="sell-price-btn text-green-600 hover:text-green-800 text-xl font-bold transition" title="Quick Update Selling Price"
                                 data-product-id="{{ $product->id }}"
                                 data-product-name="{{ $product->product_name }}"
                                 data-base-price-range="{{ $product->base_price_range_formatted }}"
@@ -104,7 +104,7 @@
             @csrf
             <input type="hidden" id="sellPriceProductId" name="product_id">
             <div class="mb-4">
-                <label for="sellPriceInput" class="block text-sm font-semibold text-gray-700 mb-2">Sell Price</label>
+                <label for="sellPriceInput" class="block text-sm font-semibold text-gray-700 mb-2">Selling Price</label>
                 <input type="number" id="sellPriceInput" name="sell_price" step="0.01" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" required>
             </div>
             <div id="sellPriceError" class="hidden mb-4 p-2 bg-red-50 text-red-600 text-sm rounded"></div>
@@ -114,7 +114,7 @@
                     Cancel
                 </button>
                 <button type="submit" id="sellPriceSubmitBtn" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">
-                    Update Sell Price
+                    Update Selling Price
                 </button>
             </div>
         </form>

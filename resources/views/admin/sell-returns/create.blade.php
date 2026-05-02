@@ -1,11 +1,11 @@
 @extends('layouts.admin')
 
-@section('title', 'Add Sell Return')
+@section('title', 'Add Sales Return')
 
 @section('content')
 <div class="container mx-auto px-4 py-8">
     <div class="max-w-6xl mx-auto">
-        <h1 class="text-3xl font-bold text-gray-900 mb-6">Add Sell Return</h1>
+        <h1 class="text-3xl font-bold text-gray-900 mb-6">Add Sales Return</h1>
 
         @if ($errors->any())
             <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">

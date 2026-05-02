@@ -37,7 +37,7 @@
             Enter <strong>Opening</strong> qty (closing stock just before {{ \Carbon\Carbon::parse($startDate)->format('d M Y') }})
             and <strong>Closing</strong> qty (stock on {{ \Carbon\Carbon::parse($endDate)->format('d M Y') }}).
             <br>
-            <code class="bg-white px-1 rounded">Expected = Opening + Purchase − Purchase Return − Sell + Sell Return</code>
+            <code class="bg-white px-1 rounded">Expected = Opening + Purchase − Purchase Return − Sales + Sales Return</code>
         </div>
 
         <div class="overflow-x-auto">
@@ -48,8 +48,8 @@
                         <th class="px-2 py-2 text-right font-semibold text-gray-700" title="Closing stock just before start date">Opening</th>
                         <th class="px-2 py-2 text-right font-semibold text-green-700">Purchase</th>
                         <th class="px-2 py-2 text-right font-semibold text-orange-600">Pur. Return</th>
-                        <th class="px-2 py-2 text-right font-semibold text-red-600">Sell</th>
-                        <th class="px-2 py-2 text-right font-semibold text-yellow-700">Sell Return</th>
+                        <th class="px-2 py-2 text-right font-semibold text-red-600">Sales</th>
+                        <th class="px-2 py-2 text-right font-semibold text-yellow-700">Sales Return</th>
                         <th class="px-2 py-2 text-right font-semibold text-blue-700">Expected</th>
                         <th class="px-2 py-2 text-right font-semibold text-purple-700" title="Stock on end date">Closing</th>
                         <th class="px-2 py-2 text-right font-semibold">Difference</th>
