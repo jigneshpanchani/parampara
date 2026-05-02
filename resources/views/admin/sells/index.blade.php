@@ -89,7 +89,7 @@
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-600">₹{{ number_format($sell->total_amount, 2, '.', '') }}</td>
                         <td class="px-6 py-4 text-sm text-green-600 font-semibold">
-                            ₹{{ number_format($sell->amount_paid, 2, '.', '') }}
+                            ₹{{ number_format($sell->total_paid, 2, '.', '') }}
                             @if($sell->payment_mode === 'mix' && ($sell->cash_amount > 0 || $sell->online_amount > 0))
                                 <div class="text-xs text-gray-500 mt-1">
                                     <span class="text-blue-600">Cash: ₹{{ number_format($sell->cash_amount, 2, '.', '') }}</span> |
@@ -98,9 +98,13 @@
                             @endif
                         </td>
                         <td class="px-6 py-4 text-sm">
-                            <span class="px-2 py-1 rounded text-xs font-semibold {{ $sell->payment_mode === 'cash' ? 'bg-blue-100 text-blue-800' : ($sell->payment_mode === 'upi' ? 'bg-purple-100 text-purple-800' : ($sell->payment_mode === 'gpay' ? 'bg-green-100 text-green-800' : 'bg-indigo-100 text-indigo-800')) }}">
-                                {{ $sell->payment_mode_label }}
-                            </span>
+                            @if($sell->payment_mode)
+                                <span class="px-2 py-1 rounded text-xs font-semibold {{ $sell->payment_mode === 'cash' ? 'bg-blue-100 text-blue-800' : ($sell->payment_mode === 'upi' ? 'bg-purple-100 text-purple-800' : ($sell->payment_mode === 'gpay' ? 'bg-green-100 text-green-800' : 'bg-indigo-100 text-indigo-800')) }}">
+                                    {{ $sell->payment_mode_label }}
+                                </span>
+                            @else
+                                <span class="text-gray-400 text-xs">—</span>
+                            @endif
                         </td>
                         <td class="px-6 py-4 text-sm">
                             <span class="px-2 py-1 rounded text-xs font-semibold {{ $sell->payment_status === 'paid' ? 'bg-green-100 text-green-800' : ($sell->payment_status === 'pending' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800') }}">
@@ -131,10 +135,12 @@
                                 @endif
                             </div>
                         </td>
-                        <td class="px-6 py-4 text-sm flex gap-3 justify-center">
+                        <td class="px-6 py-4 text-sm flex gap-3 justify-center items-center">
                             @if(in_array($sell->payment_status, ['pending', 'partial']))
-                                <button type="button" onclick="openSellPaymentModal({{ $sell->id }})" class="text-green-500 hover:text-green-700 text-xl transition font-bold" title="Payment Details">
-                                    ₹
+                                <button type="button" onclick="openSellPaymentModal({{ $sell->id }})"
+                                    class="px-2 py-1 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded transition whitespace-nowrap"
+                                    title="Record / view payments">
+                                    Pay
                                 </button>
                             @endif
                             <a href="{{ route('admin.sells.show', $sell) }}" class="text-green-500 hover:text-green-700 transition" title="View">

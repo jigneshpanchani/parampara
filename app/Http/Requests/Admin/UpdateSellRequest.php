@@ -23,7 +23,7 @@ class UpdateSellRequest extends FormRequest
             'quantity.*' => ['required', 'integer', 'min:1'],
             'selling_price' => ['required', 'array', 'min:1'],
             'selling_price.*' => ['required', 'numeric', 'min:0'],
-            'payment_mode' => ['required', 'in:cash,upi,gpay,mix'],
+            'payment_mode' => ['nullable', 'in:cash,upi,gpay,mix'],
             'amount_paid' => ['required', 'numeric', 'min:0'],
             'cash_amount' => ['nullable', 'numeric', 'min:0'],
             'online_amount' => ['nullable', 'numeric', 'min:0'],

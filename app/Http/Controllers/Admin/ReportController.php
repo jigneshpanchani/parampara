@@ -60,7 +60,7 @@ class ReportController extends Controller
         // Calculate totals
         $totalSales = $sells->sum('total_amount');
         $totalQuantity = $sells->flatMap->items->sum('quantity');
-        $paidAmount = $sells->sum('amount_paid');
+        $paidAmount = $sells->sum('total_amount') - $sells->sum('pending_amount');
         $pendingAmount = $sells->sum('pending_amount');
         $totalExpenses = Expense::whereBetween('expense_date', [$startDate ?? now()->startOfMonth(), $endDate ?? now()])->sum('amount');
 

@@ -248,7 +248,7 @@ class SellInvoiceController extends Controller
                     $sheet->setCellValueByColumnAndRow(8, $row, (float) $item->total_price);
                     $sheet->setCellValueByColumnAndRow(9, $row, (float) $onInvoice);
                     $sheet->setCellValueByColumnAndRow(10, $row, (string) ($sell->payment_mode_label ?? $sell->payment_mode));
-                    $sheet->setCellValueByColumnAndRow(11, $row, (float) $sell->amount_paid);
+                    $sheet->setCellValueByColumnAndRow(11, $row, (float) $sell->total_paid);
                     $row++;
                 }
             }

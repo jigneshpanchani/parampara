@@ -94,7 +94,7 @@ class SellController extends Controller
      */
     public function show(Sell $sell): View
     {
-        $sell->load(['items.product', 'cashSellInvoice', 'onlineSellInvoice', 'mixSellInvoice']);
+        $sell->load(['items.product', 'sellPayments', 'cashSellInvoice', 'onlineSellInvoice', 'mixSellInvoice']);
         return view('admin.sells.show', compact('sell'));
     }
 
@@ -103,7 +103,7 @@ class SellController extends Controller
      */
     public function edit(Sell $sell): View
     {
-        $sell->load('items.product');
+        $sell->load(['items.product', 'sellPayments']);
         $existingProductIds = $sell->items->pluck('product_id')->all();
 
         $products = Product::where(function ($query) use ($existingProductIds) {
@@ -111,7 +111,35 @@ class SellController extends Controller
                 ->orWhereIn('id', $existingProductIds);
         })->orderByName()->get();
 
-        return view('admin.sells.edit', compact('sell', 'products'));
+        // Default: use stored values
+        $displayPaymentMode  = $sell->payment_mode;
+        $displayAmountPaid   = (float) $sell->amount_paid;
+        $displayCashAmount   = (float) ($sell->cash_amount ?? 0);
+        $displayOnlineAmount = (float) ($sell->online_amount ?? 0);
+
+        // If payments were recorded via the Pay modal, reflect them in the form
+        if ($sell->sellPayments->isNotEmpty()) {
+            $displayAmountPaid = (float) $sell->total_paid;
+
+            // Only auto-derive payment mode when none was set at sale time
+            if ($sell->payment_mode === null) {
+                $methods = $sell->sellPayments->pluck('payment_method')->unique()->values();
+
+                if ($methods->count() === 1 && in_array($methods[0], ['cash', 'upi', 'gpay'])) {
+                    $displayPaymentMode = $methods[0];
+                } elseif ($methods->count() > 1) {
+                    $displayPaymentMode  = 'mix';
+                    $displayCashAmount   = (float) $sell->sellPayments->where('payment_method', 'cash')->sum('amount');
+                    $displayOnlineAmount = (float) $sell->sellPayments->whereIn('payment_method', ['upi', 'gpay', 'bank_transfer', 'cheque', 'other'])->sum('amount');
+                }
+            }
+        }
+
+        return view('admin.sells.edit', compact(
+            'sell', 'products',
+            'displayPaymentMode', 'displayAmountPaid',
+            'displayCashAmount', 'displayOnlineAmount'
+        ));
     }
 
     /**
@@ -130,6 +158,10 @@ class SellController extends Controller
 
             $attributes = $this->sellService->buildSellAttributes($validated, $totalAmount);
             $sell->update($attributes);
+
+            // Sell_payments were pre-filled into amount_paid on the edit form.
+            // Delete them so recalculatePaymentStatus() won't double-count.
+            $sell->sellPayments()->delete();
 
             StockService::addStockBackFromSale($sell->items);
 
@@ -204,7 +236,7 @@ class SellController extends Controller
                 'total_paid' => number_format($totalPaid, 2),
                 'remaining_amount' => number_format($remaining, 2),
                 'payment_status' => ucfirst($sell->payment_status),
-                'payment_mode' => $sell->payment_mode_label,
+                'payment_mode' => $sell->payment_mode_label ?: '—',
             ],
             'items' => $items,
             'payments' => $payments,

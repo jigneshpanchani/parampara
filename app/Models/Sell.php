@@ -52,14 +52,27 @@ class Sell extends Model
         return (float) $this->sellPayments()->sum('amount');
     }
 
+    /**
+     * Total ever paid = initial amount_paid + all subsequent sell_payments.
+     * Uses pending_amount as the source of truth since it is kept accurate
+     * by recalculatePaymentStatus() after every payment.
+     */
+    public function getTotalPaidAttribute(): float
+    {
+        return max(0, $this->total_amount - $this->pending_amount);
+    }
+
     public function getRemainingAmount(): float
     {
-        return max(0, $this->total_amount - $this->amount_paid - $this->getTotalPaidFromPayments());
+        return (float) $this->pending_amount;
     }
 
     public function recalculatePaymentStatus(): void
     {
-        $totalPaid = $this->amount_paid + $this->getTotalPaidFromPayments();
+        $payments = $this->sellPayments()->get(['amount', 'payment_method']);
+        $totalPaidFromPayments = (float) $payments->sum('amount');
+        $totalPaid = $this->amount_paid + $totalPaidFromPayments;
+
         if ($totalPaid <= 0) {
             $status = 'pending';
         } elseif ($totalPaid >= $this->total_amount) {
@@ -67,10 +80,23 @@ class Sell extends Model
         } else {
             $status = 'partial';
         }
-        $this->update([
+
+        $updates = [
             'payment_status' => $status,
             'pending_amount' => max(0, $this->total_amount - $totalPaid),
-        ]);
+        ];
+
+        // Auto-fill payment_mode from sell_payments when it was not set at sale time
+        if ($this->payment_mode === null && $payments->isNotEmpty()) {
+            $methods = $payments->pluck('payment_method')->unique()->values();
+            if ($methods->count() === 1 && in_array($methods[0], ['cash', 'upi', 'gpay'])) {
+                $updates['payment_mode'] = $methods[0];
+            } elseif ($methods->count() > 1) {
+                $updates['payment_mode'] = 'mix';
+            }
+        }
+
+        $this->update($updates);
     }
 
     public function cashSellInvoice()
@@ -106,7 +132,7 @@ class Sell extends Model
             'cash' => 'Cash',
             'upi' => 'UPI',
             'mix' => 'Mix',
-            default => strtoupper($this->payment_mode ?? ''),
+            default => $this->payment_mode ? strtoupper($this->payment_mode) : '—',
         };
     }
 

@@ -89,13 +89,13 @@
                     <input type="text" id="total_amount" name="total_amount" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none" readonly value="{{ old('total_amount', number_format($sell->total_amount, 2, '.', '')) }}">
                 </div>
                 <div>
-                    <label for="payment_mode" class="block text-sm font-semibold text-gray-700 mb-2">Payment Mode *</label>
-                    <select id="payment_mode" name="payment_mode" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                        <option value="">Select Mode</option>
-                        <option value="cash" {{ old('payment_mode', $sell->payment_mode) === 'cash' ? 'selected' : '' }}>Cash</option>
-                        <option value="upi" {{ old('payment_mode', $sell->payment_mode) === 'upi' ? 'selected' : '' }}>UPI</option>
-                        <option value="gpay" {{ old('payment_mode', $sell->payment_mode) === 'gpay' ? 'selected' : '' }}>G-pay</option>
-                        <option value="mix" {{ old('payment_mode', $sell->payment_mode) === 'mix' ? 'selected' : '' }}>Mix (Cash & Online)</option>
+                    <label for="payment_mode" class="block text-sm font-semibold text-gray-700 mb-2">Payment Mode <span class="text-gray-400 font-normal text-xs">(optional)</span></label>
+                    <select id="payment_mode" name="payment_mode" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">— Pay Later —</option>
+                        <option value="cash" {{ old('payment_mode', $displayPaymentMode) === 'cash' ? 'selected' : '' }}>Cash</option>
+                        <option value="upi" {{ old('payment_mode', $displayPaymentMode) === 'upi' ? 'selected' : '' }}>UPI</option>
+                        <option value="gpay" {{ old('payment_mode', $displayPaymentMode) === 'gpay' ? 'selected' : '' }}>G-pay</option>
+                        <option value="mix" {{ old('payment_mode', $displayPaymentMode) === 'mix' ? 'selected' : '' }}>Mix (Cash & Online)</option>
                     </select>
                     @error('payment_mode')
                         <span class="text-red-500 text-sm">{{ $message }}</span>
@@ -103,7 +103,7 @@
                 </div>
                 <div id="amount_paid_container">
                     <label for="amount_paid" class="block text-sm font-semibold text-gray-700 mb-2">Amount Paid *</label>
-                    <input type="number" id="amount_paid" name="amount_paid" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required min="0" value="{{ old('amount_paid', $sell->amount_paid) }}">
+                    <input type="number" id="amount_paid" name="amount_paid" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required min="0" value="{{ old('amount_paid', $displayAmountPaid) }}">
                     @error('amount_paid')
                         <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
@@ -111,14 +111,14 @@
                 <!-- Cash Amount (shown only when payment_mode is 'mix') -->
                 <div id="cash_amount_container" style="display: none;">
                     <label for="cash_amount" class="block text-sm font-semibold text-gray-700 mb-2">Cash Amount *</label>
-                    <input type="number" id="cash_amount" name="cash_amount" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" min="0" value="{{ old('cash_amount', $sell->cash_amount ?? 0) }}">
+                    <input type="number" id="cash_amount" name="cash_amount" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" min="0" value="{{ old('cash_amount', $displayCashAmount) }}">
                     @error('cash_amount')
                     <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
                 </div>
                 <div id="online_amount_container" style="display: none;">
                     <label for="online_amount" class="block text-sm font-semibold text-gray-700 mb-2">Online Amount *</label>
-                    <input type="number" id="online_amount" name="online_amount" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" min="0" value="{{ old('online_amount', $sell->online_amount ?? 0) }}">
+                    <input type="number" id="online_amount" name="online_amount" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" min="0" value="{{ old('online_amount', $displayOnlineAmount) }}">
                     @error('online_amount')
                     <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror

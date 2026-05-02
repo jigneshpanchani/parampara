@@ -22,16 +22,16 @@ class DashboardController extends Controller
         // Sales Metrics
         $totalSales = Sell::sum('total_amount');
         $totalSalesCount = Sell::count();
-        $monthlySales = Sell::whereMonth('sell_date', now()->month)->sum('total_amount');
+        $monthlySales = Sell::whereYear('sell_date', now()->year)->whereMonth('sell_date', now()->month)->sum('total_amount');
 
         // Purchase Metrics
         $totalPurchases = Purchase::sum('total_amount');
         $totalPurchasesCount = Purchase::count();
-        $monthlyPurchases = Purchase::whereMonth('purchase_date', now()->month)->sum('total_amount');
+        $monthlyPurchases = Purchase::whereYear('purchase_date', now()->year)->whereMonth('purchase_date', now()->month)->sum('total_amount');
 
         // Expense Metrics
         $totalExpenses = Expense::sum('amount');
-        $monthlyExpenses = Expense::whereMonth('expense_date', now()->month)->sum('amount');
+        $monthlyExpenses = Expense::whereYear('expense_date', now()->year)->whereMonth('expense_date', now()->month)->sum('amount');
 
         // Return Metrics
         $totalPurchaseReturns = PurchaseReturn::sum('total_return_amount');
@@ -85,9 +85,9 @@ class DashboardController extends Controller
         $totalExpenses = Expense::sum('amount');
         $totalProfit = $totalSales - $totalPurchases - $totalExpenses;
 
-        $monthlySales = Sell::whereMonth('sell_date', now()->month)->sum('total_amount');
-        $monthlyPurchases = Purchase::whereMonth('purchase_date', now()->month)->sum('total_amount');
-        $monthlyExpenses = Expense::whereMonth('expense_date', now()->month)->sum('amount');
+        $monthlySales = Sell::whereYear('sell_date', now()->year)->whereMonth('sell_date', now()->month)->sum('total_amount');
+        $monthlyPurchases = Purchase::whereYear('purchase_date', now()->year)->whereMonth('purchase_date', now()->month)->sum('total_amount');
+        $monthlyExpenses = Expense::whereYear('expense_date', now()->year)->whereMonth('expense_date', now()->month)->sum('amount');
         $monthlyProfit = $monthlySales - $monthlyPurchases - $monthlyExpenses;
 
         $profitMargin = $totalSales > 0 ? ($totalProfit / $totalSales) * 100 : 0;

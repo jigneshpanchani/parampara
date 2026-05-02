@@ -87,7 +87,7 @@
                     @endif
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-600">Amount Paid</dt>
-                        <dd class="text-sm font-semibold text-green-600">₹{{ number_format($sell->amount_paid, 2) }}</dd>
+                        <dd class="text-sm font-semibold text-green-600">₹{{ number_format($sell->total_paid, 2) }}</dd>
                     </div>
                     <div class="flex justify-between border-t pt-2">
                         <dt class="text-sm font-semibold text-gray-700">Total Amount</dt>
@@ -135,6 +135,31 @@
                 </tfoot>
             </table>
         </div>
+
+        {{-- Payment History --}}
+        @if ($sell->sellPayments->isNotEmpty())
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">Payment History</h3>
+            <div class="space-y-2">
+                @foreach ($sell->sellPayments->sortBy('payment_date') as $payment)
+                <div class="flex items-center justify-between bg-green-50 border-l-4 border-green-500 rounded-r px-4 py-2 text-sm">
+                    <div class="flex gap-4 items-center">
+                        <span class="font-semibold text-green-800">₹{{ number_format($payment->amount, 2) }}</span>
+                        <span class="text-gray-600">{{ $payment->getPaymentMethodLabel() }}</span>
+                        <span class="text-gray-500">{{ $payment->payment_date->format('d M Y') }}</span>
+                        @if ($payment->reference_number)
+                            <span class="text-gray-400 text-xs">Ref: {{ $payment->reference_number }}</span>
+                        @endif
+                        @if ($payment->notes)
+                            <span class="text-gray-400 text-xs italic">{{ $payment->notes }}</span>
+                        @endif
+                    </div>
+                    <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded">Paid</span>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
 
         @if ($sell->notes)
             <div class="bg-gray-50 rounded-lg p-4">
