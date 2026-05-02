@@ -61,3 +61,17 @@
         <span class="text-red-500 text-sm">{{ $message }}</span>
     @enderror
 </div>
+
+<div class="mb-6">
+    @php $isActive = old('is_active', $product?->is_active ?? true); @endphp
+    <label class="inline-flex items-center cursor-pointer">
+        <input type="hidden" name="is_active" value="0">
+        <input type="checkbox" id="is_active" name="is_active" value="1" class="sr-only peer" {{ $isActive ? 'checked' : '' }}>
+        <span class="relative w-11 h-6 rounded-full transition-colors bg-gray-300 peer-checked:bg-green-500 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:w-5 after:h-5 after:rounded-full after:shadow after:transition-transform peer-checked:after:translate-x-5"></span>
+        <span class="ml-3 text-sm font-semibold text-gray-700">Active</span>
+    </label>
+    <p class="mt-1 text-xs text-gray-500">Inactive products are hidden from sell and purchase forms.</p>
+    @error('is_active')
+        <span class="text-red-500 text-sm">{{ $message }}</span>
+    @enderror
+</div>

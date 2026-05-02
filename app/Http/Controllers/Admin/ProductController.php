@@ -118,6 +118,20 @@ class ProductController extends Controller
     }
 
     /**
+     * Toggle active/inactive status of a product.
+     */
+    public function toggleStatus(Product $product): JsonResponse
+    {
+        $product->update(['is_active' => ! $product->is_active]);
+
+        return response()->json([
+            'success' => true,
+            'is_active' => $product->is_active,
+            'message' => $product->is_active ? 'Product activated.' : 'Product deactivated.',
+        ]);
+    }
+
+    /**
      * Remove the specified resource from storage.
      */
     public function destroy(Product $product): RedirectResponse

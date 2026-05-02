@@ -76,7 +76,7 @@ class PurchaseController extends Controller
      */
     public function create(): View
     {
-        $products = Product::orderByName()->get();
+        $products = Product::active()->orderByName()->get();
 
         return view('admin.purchases.create', compact('products'));
     }
@@ -121,8 +121,13 @@ class PurchaseController extends Controller
      */
     public function edit(Purchase $purchase): View
     {
-        $products = Product::orderByName()->get();
         $purchase->load('items.product');
+        $existingProductIds = $purchase->items->pluck('product_id')->all();
+
+        $products = Product::where(function ($query) use ($existingProductIds) {
+            $query->where('is_active', true)
+                ->orWhereIn('id', $existingProductIds);
+        })->orderByName()->get();
 
         return view('admin.purchases.edit', compact('purchase', 'products'));
     }

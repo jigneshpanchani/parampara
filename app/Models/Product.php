@@ -19,6 +19,7 @@ class Product extends Model
         'sell_price',
         'photo',
         'stock_quantity',
+        'is_active',
     ];
 
     protected $casts = [
@@ -26,6 +27,7 @@ class Product extends Model
         'base_price_min' => 'float',
         'base_price_max' => 'float',
         'sell_price' => 'float',
+        'is_active' => 'boolean',
     ];
 
     /*
@@ -82,6 +84,11 @@ class Product extends Model
     public function scopeOrderByName(Builder $query): Builder
     {
         return $query->orderBy('product_name');
+    }
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('is_active', true);
     }
 
     /*

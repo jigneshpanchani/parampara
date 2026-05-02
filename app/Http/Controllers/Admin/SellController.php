@@ -53,7 +53,7 @@ class SellController extends Controller
      */
     public function create(): View
     {
-        $products = Product::orderByName()->get();
+        $products = Product::active()->orderByName()->get();
 
         return view('admin.sells.create', compact('products'));
     }
@@ -103,8 +103,13 @@ class SellController extends Controller
      */
     public function edit(Sell $sell): View
     {
-        $products = Product::orderByName()->get();
         $sell->load('items.product');
+        $existingProductIds = $sell->items->pluck('product_id')->all();
+
+        $products = Product::where(function ($query) use ($existingProductIds) {
+            $query->where('is_active', true)
+                ->orWhereIn('id', $existingProductIds);
+        })->orderByName()->get();
 
         return view('admin.sells.edit', compact('sell', 'products'));
     }

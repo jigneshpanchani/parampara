@@ -22,7 +22,15 @@ class StoreProductRequest extends FormRequest
             'base_price_max' => ['required', 'numeric', 'min:0', 'gte:base_price_min'],
             'sell_price' => ['required', 'numeric', 'min:0'],
             'photo' => ['nullable', 'image', 'mimes:jpeg,jpg,png,gif,webp', 'max:5120'],
+            'is_active' => ['nullable', 'boolean'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'is_active' => $this->boolean('is_active'),
+        ]);
     }
 
     public function messages(): array

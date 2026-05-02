@@ -32,6 +32,7 @@
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Sell Price</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Stock</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Photo</th>
+                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
                 </tr>
             </thead>
@@ -58,6 +59,14 @@
                             @else
                                 <span class="text-gray-400">No photo</span>
                             @endif
+                        </td>
+                        <td class="px-6 py-4 text-sm">
+                            <label class="status-toggle inline-flex items-center cursor-pointer" title="Toggle active status">
+                                <input type="checkbox" class="sr-only status-toggle-input" data-product-id="{{ $product->id }}" {{ $product->is_active ? 'checked' : '' }}>
+                                <span class="status-toggle-track relative w-11 h-6 rounded-full transition-colors {{ $product->is_active ? 'bg-green-500' : 'bg-gray-300' }}">
+                                    <span class="status-toggle-thumb absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full shadow transition-transform {{ $product->is_active ? 'translate-x-5' : '' }}"></span>
+                                </span>
+                            </label>
                         </td>
                         <td class="px-6 py-4 text-sm space-x-3 flex items-center">
                             <button type="button" class="sell-price-btn text-green-600 hover:text-green-800 text-xl font-bold transition" title="Quick Update Sell Price"
@@ -205,6 +214,50 @@ document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape' && !document.getElementById('sellPriceModal').classList.contains('hidden')) {
         closeSellPriceModal();
     }
+});
+
+document.querySelectorAll('.status-toggle-input').forEach(input => {
+    input.addEventListener('change', function() {
+        const productId = this.dataset.productId;
+        const checkbox = this;
+        const label = this.closest('.status-toggle');
+        const track = label.querySelector('.status-toggle-track');
+        const thumb = label.querySelector('.status-toggle-thumb');
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content
+            || document.querySelector('input[name="_token"]')?.value;
+
+        checkbox.disabled = true;
+
+        fetch(`/admin/products/${productId}/toggle-status`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrf,
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        })
+        .then(response => response.json().then(data => ({ ok: response.ok, data })))
+        .then(({ ok, data }) => {
+            if (ok && data.success) {
+                const isActive = !!data.is_active;
+                checkbox.checked = isActive;
+                track.classList.toggle('bg-green-500', isActive);
+                track.classList.toggle('bg-gray-300', !isActive);
+                thumb.classList.toggle('translate-x-5', isActive);
+            } else {
+                checkbox.checked = !checkbox.checked;
+                alert(data?.message || 'Failed to update status.');
+            }
+        })
+        .catch(() => {
+            checkbox.checked = !checkbox.checked;
+            alert('An error occurred. Please try again.');
+        })
+        .finally(() => {
+            checkbox.disabled = false;
+        });
+    });
 });
 </script>
 @endsection
