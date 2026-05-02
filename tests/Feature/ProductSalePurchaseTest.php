@@ -5,13 +5,13 @@ namespace Tests\Feature;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\PurchaseItem;
-use App\Models\Sell;
-use App\Models\SellItem;
+use App\Models\Sale;
+use App\Models\SaleItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class ProductSellPurchaseTest extends TestCase
+class ProductSalePurchaseTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -64,7 +64,7 @@ class ProductSellPurchaseTest extends TestCase
             'description' => 'Test description',
             'base_price_min' => 100,
             'base_price_max' => 150,
-            'sell_price' => 120,
+            'selling_price' => 120,
         ]);
         $response->assertRedirect(route('admin.products.index'));
         $response->assertSessionHas('success');
@@ -72,7 +72,7 @@ class ProductSellPurchaseTest extends TestCase
         $this->assertDatabaseHas('products', [
             'product_name' => 'Test Product',
             'product_code' => 'TP001',
-            'sell_price' => 120,
+            'selling_price' => 120,
         ]);
     }
 
@@ -80,16 +80,16 @@ class ProductSellPurchaseTest extends TestCase
     public function product_with_sales_cannot_be_deleted(): void
     {
         $product = Product::create([
-            'product_name' => 'Sellable Product',
+            'product_name' => 'Saleable Product',
             'product_code' => 'SP001',
             'base_price_min' => 50,
             'base_price_max' => 100,
-            'sell_price' => 80,
+            'selling_price' => 80,
             'stock_quantity' => 10,
         ]);
 
-        $sell = Sell::create([
-            'sell_date' => now(),
+        $sale = Sale::create([
+            'sale_date' => now(),
             'total_amount' => 80,
             'payment_mode' => 'cash',
             'payment_status' => 'paid',
@@ -97,8 +97,8 @@ class ProductSellPurchaseTest extends TestCase
             'pending_amount' => 0,
         ]);
 
-        SellItem::create([
-            'sell_id' => $sell->id,
+        SaleItem::create([
+            'sale_id' => $sale->id,
             'product_id' => $product->id,
             'quantity' => 1,
             'selling_price' => 80,
@@ -119,7 +119,7 @@ class ProductSellPurchaseTest extends TestCase
             'product_code' => 'OP001',
             'base_price_min' => 10,
             'base_price_max' => 20,
-            'sell_price' => 15,
+            'selling_price' => 15,
             'stock_quantity' => 0,
         ]);
 
@@ -130,27 +130,27 @@ class ProductSellPurchaseTest extends TestCase
     }
 
     /** @test */
-    public function sell_index_loads(): void
+    public function sale_index_loads(): void
     {
-        $response = $this->actingAs($this->user)->get(route('admin.sells.index'));
+        $response = $this->actingAs($this->user)->get(route('admin.sales.index'));
         $response->assertStatus(200);
-        $response->assertViewIs('admin.sells.index');
+        $response->assertViewIs('admin.sales.index');
     }
 
     /** @test */
-    public function sell_create_and_store_works(): void
+    public function sale_create_and_store_works(): void
     {
         $product = Product::create([
-            'product_name' => 'Sell Product',
-            'product_code' => 'SELL001',
+            'product_name' => 'Sale Product',
+            'product_code' => 'SALE001',
             'base_price_min' => 50,
             'base_price_max' => 100,
-            'sell_price' => 75,
+            'selling_price' => 75,
             'stock_quantity' => 20,
         ]);
 
-        $response = $this->actingAs($this->user)->post(route('admin.sells.store'), [
-            'sell_date' => now()->format('Y-m-d'),
+        $response = $this->actingAs($this->user)->post(route('admin.sales.store'), [
+            'sale_date' => now()->format('Y-m-d'),
             'product_id' => [$product->id],
             'quantity' => [2],
             'selling_price' => [75],
@@ -158,10 +158,10 @@ class ProductSellPurchaseTest extends TestCase
             'amount_paid' => 150,
         ]);
 
-        $response->assertRedirect(route('admin.sells.index'));
+        $response->assertRedirect(route('admin.sales.index'));
         $response->assertSessionHas('success');
 
-        $this->assertDatabaseHas('sells', ['total_amount' => 150]);
+        $this->assertDatabaseHas('sales', ['total_amount' => 150]);
         $product->refresh();
         $this->assertEquals(18, $product->stock_quantity);
     }
@@ -182,7 +182,7 @@ class ProductSellPurchaseTest extends TestCase
             'product_code' => 'PURCH001',
             'base_price_min' => 30,
             'base_price_max' => 50,
-            'sell_price' => 45,
+            'selling_price' => 45,
             'stock_quantity' => 0,
         ]);
 
@@ -212,26 +212,26 @@ class ProductSellPurchaseTest extends TestCase
     }
 
     /** @test */
-    public function sell_price_update_via_ajax_works(): void
+    public function selling_price_update_via_ajax_works(): void
     {
         $product = Product::create([
             'product_name' => 'Price Update Product',
             'product_code' => 'PU001',
             'base_price_min' => 100,
             'base_price_max' => 200,
-            'sell_price' => 150,
+            'selling_price' => 150,
             'stock_quantity' => 5,
         ]);
 
         $response = $this->actingAs($this->user)->patch(
-            route('admin.products.update-sell-price', $product),
-            ['sell_price' => 175],
+            route('admin.products.update-selling-price', $product),
+            ['selling_price' => 175],
             ['Accept' => 'application/json', 'X-Requested-With' => 'XMLHttpRequest']
         );
 
         $response->assertStatus(200);
-        $response->assertJson(['success' => true, 'sell_price' => 175]);
+        $response->assertJson(['success' => true, 'selling_price' => 175]);
         $product->refresh();
-        $this->assertEquals(175, $product->sell_price);
+        $this->assertEquals(175, $product->selling_price);
     }
 }
