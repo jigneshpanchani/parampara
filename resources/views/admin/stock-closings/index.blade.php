@@ -10,6 +10,7 @@
             <div class="flex gap-2">
                 <button type="button" onclick="openSaveClosingModal()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">+ Save Closing</button>
                 <a href="{{ route('admin.stock-closings.history') }}" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">History</a>
+                <a href="{{ route('admin.stock.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">← Back</a>
             </div>
         </div>
 

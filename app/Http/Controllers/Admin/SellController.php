@@ -42,6 +42,13 @@ class SellController extends Controller
         if ($request->filled('payment_status') && in_array($request->payment_status, ['paid', 'pending', 'partial'], true)) {
             $query->where('payment_status', $request->payment_status);
         }
+        if ($request->filled('seller_search')) {
+            $term = trim($request->seller_search);
+            $query->where(function ($q) use ($term) {
+                $q->where('seller_name', 'like', "%{$term}%")
+                  ->orWhere('seller_contact_number', 'like', "%{$term}%");
+            });
+        }
 
         $sells = $query->paginate(20)->withQueryString();
 

@@ -5,6 +5,7 @@
 @section('content')
 <div class="mb-6 flex justify-between items-center">
     <h2 class="text-3xl font-bold text-gray-800">💳 Sales Report</h2>
+    <a href="{{ route('admin.reports.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">← Back</a>
 </div>
 
 <!-- Date Filter and Export -->

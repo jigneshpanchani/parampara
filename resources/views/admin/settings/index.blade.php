@@ -3,8 +3,9 @@
 @section('title', 'Settings & Profile')
 
 @section('content')
-<div class="max-w-4xl mx-auto">
-    <div class="bg-white rounded-lg shadow p-6">
+<div class="max-w-7xl mx-auto">
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <div class="lg:col-span-3 bg-white rounded-lg shadow p-6">
         <h2 class="text-2xl font-bold text-gray-800 mb-6">⚙️ Company Settings & Profile</h2>
 
         @if ($message = Session::get('success'))
@@ -32,6 +33,51 @@
                 @enderror
             </div>
 
+            <!-- Contact Information -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+                    <input type="email" id="email" name="email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="{{ old('email', $settings->email ?? '') }}">
+                    @error('email')
+                        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
+                </div>
+                <div>
+                    <label for="phone" class="block text-sm font-semibold text-gray-700 mb-2">Phone</label>
+                    <input type="text" id="phone" name="phone" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="{{ old('phone', $settings->phone ?? '') }}">
+                    @error('phone')
+                        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
+                </div>
+            </div>
+
+            <!-- Website URL & GST Number -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label for="website_url" class="block text-sm font-semibold text-gray-700 mb-2">Website URL</label>
+                    <input type="url" id="website_url" name="website_url" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="https://example.com" value="{{ old('website_url', $settings->website_url ?? '') }}">
+                    @error('website_url')
+                    <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
+                </div>
+                <div>
+                    <label for="gst_number" class="block text-sm font-semibold text-gray-700 mb-2">GST Number</label>
+                    <input type="text" id="gst_number" name="gst_number" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., 27AABCT1234H1Z0" value="{{ old('gst_number', $settings->gst_number ?? '') }}">
+                    @error('gst_number')
+                    <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
+                </div>
+            </div>
+
+            <!-- Address -->
+            <div class="mb-6">
+                <label for="address" class="block text-sm font-semibold text-gray-700 mb-2">Address</label>
+                <textarea id="address" name="address" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter company address">{{ old('address', $settings->address ?? '') }}</textarea>
+                @error('address')
+                    <span class="text-red-500 text-sm">{{ $message }}</span>
+                @enderror
+            </div>
+
             <!-- Logo Upload -->
             <div class="mb-6">
                 <label for="logo" class="block text-sm font-semibold text-gray-700 mb-2">Logo (for Login & Sidebar)</label>
@@ -40,7 +86,7 @@
                         <input type="file" id="logo" name="logo" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" accept="image/*">
                         <p class="text-gray-500 text-sm mt-1">Recommended: 200x200px, Max 5MB</p>
                         @error('logo')
-                            <span class="text-red-500 text-sm">{{ $message }}</span>
+                        <span class="text-red-500 text-sm">{{ $message }}</span>
                         @enderror
                     </div>
                     @if($settings->logo)
@@ -66,7 +112,7 @@
                         </div>
                     @endif
                     @error('favicon_16')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
                 </div>
 
@@ -82,7 +128,7 @@
                         </div>
                     @endif
                     @error('favicon_32')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
                 </div>
             </div>
@@ -92,53 +138,8 @@
                 <label for="description" class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
                 <textarea id="description" name="description" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter company description">{{ old('description', $settings->description ?? '') }}</textarea>
                 @error('description')
-                    <span class="text-red-500 text-sm">{{ $message }}</span>
+                <span class="text-red-500 text-sm">{{ $message }}</span>
                 @enderror
-            </div>
-
-            <!-- Contact Information -->
-            <div class="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                    <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">Email</label>
-                    <input type="email" id="email" name="email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="{{ old('email', $settings->email ?? '') }}">
-                    @error('email')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
-                    @enderror
-                </div>
-                <div>
-                    <label for="phone" class="block text-sm font-semibold text-gray-700 mb-2">Phone</label>
-                    <input type="text" id="phone" name="phone" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="{{ old('phone', $settings->phone ?? '') }}">
-                    @error('phone')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
-                    @enderror
-                </div>
-            </div>
-
-            <!-- Address -->
-            <div class="mb-6">
-                <label for="address" class="block text-sm font-semibold text-gray-700 mb-2">Address</label>
-                <textarea id="address" name="address" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter company address">{{ old('address', $settings->address ?? '') }}</textarea>
-                @error('address')
-                    <span class="text-red-500 text-sm">{{ $message }}</span>
-                @enderror
-            </div>
-
-            <!-- Website URL & GST Number -->
-            <div class="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                    <label for="website_url" class="block text-sm font-semibold text-gray-700 mb-2">Website URL</label>
-                    <input type="url" id="website_url" name="website_url" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="https://example.com" value="{{ old('website_url', $settings->website_url ?? '') }}">
-                    @error('website_url')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
-                    @enderror
-                </div>
-                <div>
-                    <label for="gst_number" class="block text-sm font-semibold text-gray-700 mb-2">GST Number</label>
-                    <input type="text" id="gst_number" name="gst_number" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., 27AABCT1234H1Z0" value="{{ old('gst_number', $settings->gst_number ?? '') }}">
-                    @error('gst_number')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
-                    @enderror
-                </div>
             </div>
 
             <!-- Submit Button -->
@@ -149,8 +150,9 @@
         </form>
     </div>
 
-    <!-- Password Reset Section -->
-    <div class="bg-white rounded-lg shadow p-6 mt-6">
+    <!-- Right column: Password + DB Backup stacked -->
+    <div class="lg:col-span-1 space-y-6 self-start">
+    <div class="bg-white rounded-lg shadow p-6">
         <h2 class="text-2xl font-bold text-gray-800 mb-6">🔒 Change Password</h2>
 
         <form action="{{ route('admin.settings.update-password') }}" method="POST">
@@ -190,6 +192,20 @@
                 <button type="submit" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded">Update Password</button>
             </div>
         </form>
+    </div>
+
+    <!-- DB Backup Section -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">💾 Database Backup</h2>
+        <p class="text-sm text-gray-600 mb-4">Download a full SQL backup of the database.</p>
+        <a href="{{ route('admin.db-backup.download') }}" class="inline-flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+            </svg>
+            Download Backup
+        </a>
+    </div>
+    </div>
     </div>
 </div>
 @endsection

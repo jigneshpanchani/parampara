@@ -7,9 +7,12 @@
     <!-- Header with Add Forcefully Button -->
     <div class="flex justify-between items-center">
         <h2 class="text-3xl font-bold text-gray-800">Stock Management</h2>
-        <button onclick="openAddStockModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition">
-            + Add Forcefully
-        </button>
+        <div class="flex gap-2">
+            <button onclick="openAddStockModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition">
+                + Add Forcefully
+            </button>
+            <a href="{{ route('admin.stock.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition">← Back</a>
+        </div>
     </div>
 
     <!-- Products Stock Table -->

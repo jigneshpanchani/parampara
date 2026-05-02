@@ -88,6 +88,7 @@ Route::middleware('auth')->group(function () {
         Route::get('dashboard/financial', [AdminDashboardController::class, 'financial'])->name('dashboard.financial');
         Route::get('dashboard/inventory', [AdminDashboardController::class, 'inventory'])->name('dashboard.inventory');
 
+        Route::view('stock', 'admin.stock.index')->name('stock.index');
         Route::resource('stocks', StockController::class);
         Route::resource('products', ProductController::class);
         Route::patch('products/{product}/sell-price', [ProductController::class, 'updateSellPrice'])->name('products.update-sell-price');

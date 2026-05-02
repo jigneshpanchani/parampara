@@ -9,7 +9,8 @@
             <h2 class="text-2xl font-bold text-gray-800">Stock Closing History</h2>
             <div class="flex gap-2">
                 <button type="button" onclick="openSaveClosingModal()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">+ Save Closing</button>
-                <a href="{{ route('admin.stock-closings.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Verification</a>
+                <a href="{{ route('admin.stock-closings.index') }}" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Verification</a>
+                <a href="{{ route('admin.stock.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">← Back</a>
             </div>
         </div>
 

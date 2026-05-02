@@ -131,23 +131,13 @@
                         </span>
                     </a>
 
-                    <!-- Stock Management -->
-                    <a href="{{ route('admin.stocks.index') }}" class="block px-6 py-3 hover:bg-gray-800 transition {{ request()->routeIs('admin.stocks.*') ? 'bg-gray-800 border-l-4 border-blue-500' : '' }}">
+                    <!-- Stock (hub: current stock, save closing, verification) -->
+                    <a href="{{ route('admin.stock.index') }}" class="block px-6 py-3 hover:bg-gray-800 transition {{ request()->routeIs('admin.stock.*') || request()->routeIs('admin.stocks.*') || request()->routeIs('admin.stock-closings.*') ? 'bg-gray-800 border-l-4 border-blue-500' : '' }}">
                         <span class="flex items-center">
                             <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m0 0l8 4m-8-4v10l8 4m0-10l8-4m-8 4v10l8-4m0 0l-8-4"></path>
                             </svg>
                             📦 Stock
-                        </span>
-                    </a>
-
-                    <!-- Stock Closing -->
-                    <a href="{{ route('admin.stock-closings.index') }}" class="block px-6 py-3 hover:bg-gray-800 transition {{ request()->routeIs('admin.stock-closings.*') ? 'bg-gray-800 border-l-4 border-blue-500' : '' }}">
-                        <span class="flex items-center">
-                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-                            </svg>
-                            🗂️ Stock Closing
                         </span>
                     </a>
 
@@ -159,16 +149,6 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                             </svg>
                             ⚙️ Settings
-                        </span>
-                    </a>
-
-                    <!-- DB Backup -->
-                    <a href="{{ route('admin.db-backup.download') }}" class="block px-6 py-3 hover:bg-gray-800 transition">
-                        <span class="flex items-center">
-                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
-                            </svg>
-                            💾 DB Backup
                         </span>
                     </a>
 

@@ -19,6 +19,12 @@
 <div class="bg-white rounded-lg shadow p-4 mb-6">
     <form method="GET" action="{{ route('admin.sells.index') }}" class="flex flex-wrap items-end gap-4">
         <div>
+            <label for="seller_search" class="block text-sm font-medium text-gray-700 mb-1">Seller</label>
+            <input type="text" name="seller_search" id="seller_search" value="{{ request('seller_search') }}"
+                placeholder="Name or contact"
+                class="rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm min-w-[180px]">
+        </div>
+        <div>
             <label for="date_from" class="block text-sm font-medium text-gray-700 mb-1">From date</label>
             <input type="date" name="date_from" id="date_from" value="{{ request('date_from') }}"
                 class="rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
