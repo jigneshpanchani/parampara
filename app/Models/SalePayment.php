@@ -5,12 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class SellPayment extends Model
+class SalePayment extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'sell_id',
+        'sale_id',
         'payment_date',
         'amount',
         'payment_method',
@@ -23,9 +23,9 @@ class SellPayment extends Model
         'amount' => 'decimal:2',
     ];
 
-    public function sell()
+    public function sale()
     {
-        return $this->belongsTo(Sell::class);
+        return $this->belongsTo(Sale::class);
     }
 
     public function getPaymentMethodLabel(): string

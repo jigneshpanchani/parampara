@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreProductRequest;
 use App\Http\Requests\Admin\UpdateProductRequest;
-use App\Http\Requests\Admin\UpdateSellPriceRequest;
+use App\Http\Requests\Admin\UpdateSellingPriceRequest;
 use App\Models\Product;
 use App\Services\ProductService;
 use Illuminate\Http\JsonResponse;
@@ -104,16 +104,16 @@ class ProductController extends Controller
     }
 
     /**
-     * Update only the sell price of a product.
+     * Update only the selling price of a product.
      */
-    public function updateSellPrice(UpdateSellPriceRequest $request, Product $product): JsonResponse
+    public function updateSellingPrice(UpdateSellingPriceRequest $request, Product $product): JsonResponse
     {
-        $product->update(['sell_price' => $request->validated('sell_price')]);
+        $product->update(['selling_price' => $request->validated('selling_price')]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Sell price updated successfully.',
-            'sell_price' => $product->sell_price,
+            'message' => 'Selling price updated successfully.',
+            'selling_price' => $product->selling_price,
         ]);
     }
 

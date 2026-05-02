@@ -3,7 +3,7 @@
 @section('title', 'Add Sales Return')
 
 @section('content')
-<div class="container mx-auto px-4 py-8">
+<div class="container mx-auto">
     <div class="max-w-6xl mx-auto">
         <h1 class="text-3xl font-bold text-gray-900 mb-6">Add Sales Return</h1>
 
@@ -17,20 +17,20 @@
             </div>
         @endif
 
-        <form action="{{ route('admin.sell-returns.store') }}" method="POST" class="bg-white rounded-lg shadow p-6">
+        <form action="{{ route('admin.sale-returns.store') }}" method="POST" class="bg-white rounded-lg shadow p-6">
             @csrf
 
             <!-- Row 1: Sale & Product -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
-                    <label for="sell_id" class="block text-sm font-semibold text-gray-700 mb-2">Sale</label>
-                    <select id="sell_id" name="sell_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    <label for="sale_id" class="block text-sm font-semibold text-gray-700 mb-2">Sale</label>
+                    <select id="sale_id" name="sale_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                         <option value="">Select a sale</option>
-                        @foreach ($sells as $sell)
-                            <option value="{{ $sell->id }}" {{ old('sell_id') == $sell->id ? 'selected' : '' }}>Sale #{{ $sell->id }} - {{ $sell->sell_date->format('d M Y') }}@if(!empty($sell->seller_name)) ({{ $sell->seller_name }})@endif</option>
+                        @foreach ($sales as $sale)
+                            <option value="{{ $sale->id }}" {{ old('sale_id') == $sale->id ? 'selected' : '' }}>Sale #{{ $sale->id }} - {{ $sale->sale_date->format('d M Y') }}@if(!empty($sale->seller_name)) ({{ $sale->seller_name }})@endif</option>
                         @endforeach
                     </select>
-                    @error('sell_id')
+                    @error('sale_id')
                         <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
                 </div>
@@ -100,7 +100,7 @@
                 <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded">
                     Save Return
                 </button>
-                <a href="{{ route('admin.sell-returns.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded">
+                <a href="{{ route('admin.sale-returns.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded">
                     Cancel
                 </a>
             </div>

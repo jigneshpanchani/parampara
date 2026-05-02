@@ -20,7 +20,7 @@ class StoreProductRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'base_price_min' => ['required', 'numeric', 'min:0'],
             'base_price_max' => ['required', 'numeric', 'min:0', 'gte:base_price_min'],
-            'sell_price' => ['required', 'numeric', 'min:0'],
+            'selling_price' => ['required', 'numeric', 'min:0'],
             'photo' => ['nullable', 'image', 'mimes:jpeg,jpg,png,gif,webp', 'max:5120'],
             'is_active' => ['nullable', 'boolean'],
         ];

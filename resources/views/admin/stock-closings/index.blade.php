@@ -67,7 +67,7 @@
                         <td class="px-2 py-2 text-right text-green-700 purchased-cell" data-value="{{ $row['purchased_qty'] }}">{{ number_format($row['purchased_qty'], 2) }}</td>
                         <td class="px-2 py-2 text-right text-orange-600 pur-ret-cell" data-value="{{ $row['purchase_returns_qty'] }}">{{ number_format($row['purchase_returns_qty'], 2) }}</td>
                         <td class="px-2 py-2 text-right text-red-600 sold-cell" data-value="{{ $row['sold_qty'] }}">{{ number_format($row['sold_qty'], 2) }}</td>
-                        <td class="px-2 py-2 text-right text-yellow-700 sell-ret-cell" data-value="{{ $row['sell_returns_qty'] }}">{{ number_format($row['sell_returns_qty'], 2) }}</td>
+                        <td class="px-2 py-2 text-right text-yellow-700 sale-ret-cell" data-value="{{ $row['sale_returns_qty'] }}">{{ number_format($row['sale_returns_qty'], 2) }}</td>
                         <td class="px-2 py-2 text-right font-semibold text-blue-700 expected-cell">0.00</td>
                         <td class="px-2 py-2">
                             <input type="number" step="0.01" min="0" placeholder="0"
@@ -95,11 +95,11 @@ document.querySelectorAll('.closing-row').forEach(row => {
     const purchased    = num(row.querySelector('.purchased-cell').dataset.value);
     const purRet       = num(row.querySelector('.pur-ret-cell').dataset.value);
     const sold         = num(row.querySelector('.sold-cell').dataset.value);
-    const sellRet      = num(row.querySelector('.sell-ret-cell').dataset.value);
+    const saleRet      = num(row.querySelector('.sale-ret-cell').dataset.value);
 
     function recalc() {
         const opening  = num(openingInput.value);
-        const expected = opening + purchased - purRet - sold + sellRet;
+        const expected = opening + purchased - purRet - sold + saleRet;
         expectedCell.textContent = expected.toFixed(2);
 
         if (closingInput.value === '') {

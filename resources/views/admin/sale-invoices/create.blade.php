@@ -14,7 +14,7 @@
 </div>
 
 <div class="bg-white rounded-lg shadow p-8 max-w-2xl">
-    <form method="GET" action="{{ route('admin.sell-invoices.create') }}" class="mb-6 flex flex-wrap items-end gap-4">
+    <form method="GET" action="{{ route('admin.sale-invoices.create') }}" class="mb-6 flex flex-wrap items-end gap-4">
         <div>
             <label for="preview_date" class="block text-sm font-semibold text-gray-700 mb-2">Date</label>
             <input type="date" name="date" id="preview_date" value="{{ $date }}" class="px-4 py-2 border border-gray-300 rounded-lg">
@@ -57,7 +57,7 @@
         @endif
     </div>
 
-    <form method="POST" action="{{ route('admin.sell-invoices.store') }}">
+    <form method="POST" action="{{ route('admin.sale-invoices.store') }}">
         @csrf
         <input type="hidden" name="invoice_date" value="{{ $date }}">
         <input type="hidden" name="invoice_type" value="{{ $invoiceType }}">
@@ -71,7 +71,7 @@
             <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded disabled:opacity-50" {{ $alreadyInvoiced || $pendingCount === 0 ? 'disabled' : '' }}>
                 Generate {{ $invoiceType }} invoice
             </button>
-            <a href="{{ route('admin.sell-invoices.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded inline-flex items-center">Cancel</a>
+            <a href="{{ route('admin.sale-invoices.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded inline-flex items-center">Cancel</a>
         </div>
     </form>
 </div>

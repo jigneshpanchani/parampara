@@ -16,7 +16,7 @@ class Product extends Model
         'description',
         'base_price_min',
         'base_price_max',
-        'sell_price',
+        'selling_price',
         'photo',
         'stock_quantity',
         'is_active',
@@ -26,7 +26,7 @@ class Product extends Model
         'stock_quantity' => 'integer',
         'base_price_min' => 'float',
         'base_price_max' => 'float',
-        'sell_price' => 'float',
+        'selling_price' => 'float',
         'is_active' => 'boolean',
     ];
 
@@ -39,9 +39,9 @@ class Product extends Model
         return $this->hasMany(PurchaseItem::class);
     }
 
-    public function sellItems()
+    public function saleItems()
     {
-        return $this->hasMany(SellItem::class);
+        return $this->hasMany(SaleItem::class);
     }
 
     public function purchaseReturns()
@@ -49,17 +49,17 @@ class Product extends Model
         return $this->hasMany(PurchaseReturn::class);
     }
 
-    public function sellReturns()
+    public function saleReturns()
     {
-        return $this->hasMany(SellReturn::class);
+        return $this->hasMany(SaleReturn::class);
     }
 
     /**
-     * Get sells through sell items (hasManyThrough).
+     * Get sales through sale items (hasManyThrough).
      */
-    public function sells()
+    public function sales()
     {
-        return $this->hasManyThrough(Sell::class, SellItem::class);
+        return $this->hasManyThrough(Sale::class, SaleItem::class);
     }
 
     /*
@@ -104,11 +104,11 @@ class Product extends Model
     }
 
     /**
-     * Get formatted sell price.
+     * Get formatted selling price.
      */
-    public function getSellPriceFormattedAttribute(): string
+    public function getSellingPriceFormattedAttribute(): string
     {
-        return '₹' . number_format($this->sell_price, 2);
+        return '₹' . number_format($this->selling_price, 2);
     }
 
     /**
@@ -117,9 +117,9 @@ class Product extends Model
     public function hasTransactionHistory(): bool
     {
         return $this->purchaseItems()->exists()
-            || $this->sellItems()->exists()
+            || $this->saleItems()->exists()
             || $this->purchaseReturns()->exists()
-            || $this->sellReturns()->exists();
+            || $this->saleReturns()->exists();
     }
 
     /**

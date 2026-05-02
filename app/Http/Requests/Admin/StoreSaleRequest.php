@@ -5,7 +5,7 @@ namespace App\Http\Requests\Admin;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreSellRequest extends FormRequest
+class StoreSaleRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -18,7 +18,7 @@ class StoreSellRequest extends FormRequest
         $isDirectMode = in_array($paymentMode, ['cash', 'upi', 'gpay'], true);
 
         return [
-            'sell_date' => ['required', 'date'],
+            'sale_date' => ['required', 'date'],
             'seller_name' => [
                 empty($paymentMode) ? 'required' : 'nullable',
                 'string',

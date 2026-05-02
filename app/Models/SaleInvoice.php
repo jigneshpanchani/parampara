@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
 
-class SellInvoice extends Model
+class SaleInvoice extends Model
 {
     use HasFactory;
     use SoftDeletes;
@@ -25,7 +25,7 @@ class SellInvoice extends Model
         'total_amount',
         'cash_total',
         'online_total',
-        'sells_count',
+        'sales_count',
         'notes',
     ];
 
@@ -35,66 +35,66 @@ class SellInvoice extends Model
         'total_amount' => 'float',
         'cash_total' => 'float',
         'online_total' => 'float',
-        'sells_count' => 'integer',
+        'sales_count' => 'integer',
     ];
 
     /**
-     * Foreign key on `sells` for this invoice type (normalized — avoids Eloquent caching wrong hasMany FK).
+     * Foreign key on `sales` for this invoice type (normalized — avoids Eloquent caching wrong hasMany FK).
      */
     public function invoiceForeignKey(): string
     {
         $type = strtolower(trim((string) ($this->attributes['invoice_type'] ?? $this->invoice_type ?? '')));
 
         return match ($type) {
-            'online' => 'online_sell_invoice_id',
-            'mix' => 'mix_sell_invoice_id',
-            default => 'cash_sell_invoice_id',
+            'online' => 'online_sale_invoice_id',
+            'mix' => 'mix_sale_invoice_id',
+            default => 'cash_sale_invoice_id',
         };
     }
 
     /**
-     * Related sells — FK depends on invoice type (cash / online / mix are separate).
+     * Related sales — FK depends on invoice type (cash / online / mix are separate).
      */
-    public function sells()
+    public function sales()
     {
-        return $this->hasMany(Sell::class, $this->invoiceForeignKey());
+        return $this->hasMany(Sale::class, $this->invoiceForeignKey());
     }
 
     /**
-     * Load sells for view/export.
+     * Load sales for view/export.
      * Uses all three possible FK columns — does not depend on invoice_type matching DB (fixes empty online views when type/FK were inconsistent).
      */
-    public function loadSellsForDisplay(): Collection
+    public function loadSalesForDisplay(): Collection
     {
-        $this->unsetRelation('sells');
+        $this->unsetRelation('sales');
 
         $invoiceId = (int) $this->id;
 
-        $sells = Sell::query()
+        $sales = Sale::query()
             ->with('items.product')
             ->where(function ($q) use ($invoiceId) {
-                $q->where('cash_sell_invoice_id', $invoiceId)
-                    ->orWhere('online_sell_invoice_id', $invoiceId)
-                    ->orWhere('mix_sell_invoice_id', $invoiceId);
+                $q->where('cash_sale_invoice_id', $invoiceId)
+                    ->orWhere('online_sale_invoice_id', $invoiceId)
+                    ->orWhere('mix_sale_invoice_id', $invoiceId);
             })
             ->orderBy('id')
             ->get();
 
-        $this->setRelation('sells', $sells);
+        $this->setRelation('sales', $sales);
 
-        return $sells;
+        return $sales;
     }
 
     /**
-     * Clear all invoice FKs on sells pointing to this invoice before soft-delete.
+     * Clear all invoice FKs on sales pointing to this invoice before soft-delete.
      */
-    public function unlinkSellsFromInvoice(): void
+    public function unlinkSalesFromInvoice(): void
     {
         $id = $this->id;
 
-        Sell::where('cash_sell_invoice_id', $id)->update(['cash_sell_invoice_id' => null]);
-        Sell::where('online_sell_invoice_id', $id)->update(['online_sell_invoice_id' => null]);
-        Sell::where('mix_sell_invoice_id', $id)->update(['mix_sell_invoice_id' => null]);
+        Sale::where('cash_sale_invoice_id', $id)->update(['cash_sale_invoice_id' => null]);
+        Sale::where('online_sale_invoice_id', $id)->update(['online_sale_invoice_id' => null]);
+        Sale::where('mix_sale_invoice_id', $id)->update(['mix_sale_invoice_id' => null]);
     }
 
     public function getInvoiceTypeLabelAttribute(): string
@@ -108,16 +108,16 @@ class SellInvoice extends Model
     }
 
     /**
-     * Total amount for this invoice type (one full sell row where applicable).
+     * Total amount for this invoice type (one full sale row where applicable).
      */
-    public static function totalAmountForSell(Sell $sell, string $invoiceType): float
+    public static function totalAmountForSale(Sale $sale, string $invoiceType): float
     {
-        $mode = $sell->payment_mode ?? 'cash';
+        $mode = $sale->payment_mode ?? 'cash';
 
         return match ($invoiceType) {
-            self::TYPE_CASH => $mode === 'cash' ? (float) $sell->total_amount : 0.0,
-            self::TYPE_ONLINE => in_array($mode, ['upi', 'gpay'], true) ? (float) $sell->total_amount : 0.0,
-            self::TYPE_MIX => $mode === 'mix' ? (float) $sell->total_amount : 0.0,
+            self::TYPE_CASH => $mode === 'cash' ? (float) $sale->total_amount : 0.0,
+            self::TYPE_ONLINE => in_array($mode, ['upi', 'gpay'], true) ? (float) $sale->total_amount : 0.0,
+            self::TYPE_MIX => $mode === 'mix' ? (float) $sale->total_amount : 0.0,
             default => 0.0,
         };
     }
@@ -125,9 +125,9 @@ class SellInvoice extends Model
     /**
      * Line amount on this invoice (full line for cash/online/mix invoices; no split).
      */
-    public static function lineAmountForInvoiceType(Sell $sell, SellItem $item, string $invoiceType): float
+    public static function lineAmountForInvoiceType(Sale $sale, SaleItem $item, string $invoiceType): float
     {
-        if (self::totalAmountForSell($sell, $invoiceType) <= 0) {
+        if (self::totalAmountForSale($sale, $invoiceType) <= 0) {
             return 0.0;
         }
 
@@ -137,22 +137,22 @@ class SellInvoice extends Model
     /**
      * Aggregate totals for stored invoice snapshot.
      */
-    public static function aggregateTotalsFromSells(Collection $sells, string $invoiceType): array
+    public static function aggregateTotalsFromSales(Collection $sales, string $invoiceType): array
     {
         $total = 0.0;
         $cash = 0.0;
         $online = 0.0;
 
-        foreach ($sells as $sell) {
-            $total += self::totalAmountForSell($sell, $invoiceType);
+        foreach ($sales as $sale) {
+            $total += self::totalAmountForSale($sale, $invoiceType);
 
             if ($invoiceType === self::TYPE_MIX) {
-                $cash += (float) ($sell->cash_amount ?? 0);
-                $online += (float) ($sell->online_amount ?? 0);
+                $cash += (float) ($sale->cash_amount ?? 0);
+                $online += (float) ($sale->online_amount ?? 0);
             } elseif ($invoiceType === self::TYPE_CASH) {
-                $cash += self::totalAmountForSell($sell, $invoiceType);
+                $cash += self::totalAmountForSale($sale, $invoiceType);
             } else {
-                $online += self::totalAmountForSell($sell, $invoiceType);
+                $online += self::totalAmountForSale($sale, $invoiceType);
             }
         }
 
@@ -160,7 +160,7 @@ class SellInvoice extends Model
             'total_amount' => round($total, 2),
             'cash_total' => round($cash, 2),
             'online_total' => round($online, 2),
-            'sells_count' => $sells->count(),
+            'sales_count' => $sales->count(),
         ];
     }
 

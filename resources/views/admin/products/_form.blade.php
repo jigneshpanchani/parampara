@@ -33,9 +33,9 @@
         @enderror
     </div>
     <div>
-        <label for="sell_price" class="block text-sm font-semibold text-gray-700 mb-2">Selling Price *</label>
-        <input type="number" id="sell_price" name="sell_price" step="0.01" min="0" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required value="{{ old('sell_price', $product?->sell_price) }}">
-        @error('sell_price')
+        <label for="selling_price" class="block text-sm font-semibold text-gray-700 mb-2">Selling Price *</label>
+        <input type="number" id="selling_price" name="selling_price" step="0.01" min="0" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required value="{{ old('selling_price', $product?->selling_price) }}">
+        @error('selling_price')
             <span class="text-red-500 text-sm">{{ $message }}</span>
         @enderror
     </div>

@@ -106,36 +106,36 @@
             </tr>
         </thead>
         <tbody>
-            @forelse ($sells as $sell)
-                @foreach($sell->items as $item)
+            @forelse ($sales as $sale)
+                @foreach($sale->items as $item)
                     <tr class="border-b hover:bg-gray-50">
-                        <td class="px-6 py-4 text-sm text-gray-900">{{ $sell->sell_date->format('d M Y') }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-900">{{ $sale->sale_date->format('d M Y') }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">{{ $item->product?->product_name ?? 'Deleted Product' }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">{{ $item->quantity }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">₹{{ number_format($item->selling_price, 2) }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">₹{{ number_format($item->total_price, 2) }}</td>
                         <td class="px-6 py-4 text-sm">
-                            @if($sell->payment_mode === 'cash')
+                            @if($sale->payment_mode === 'cash')
                                 <span class="px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-800">CASH</span>
-                            @elseif($sell->payment_mode === 'upi')
+                            @elseif($sale->payment_mode === 'upi')
                                 <span class="px-2 py-1 rounded text-xs font-semibold bg-purple-100 text-purple-800">UPI</span>
-                            @elseif($sell->payment_mode === 'gpay')
+                            @elseif($sale->payment_mode === 'gpay')
                                 <span class="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-800">G-PAY</span>
-                            @elseif($sell->payment_mode === 'mix')
+                            @elseif($sale->payment_mode === 'mix')
                                 <span class="px-2 py-1 rounded text-xs font-semibold bg-indigo-100 text-indigo-800">MIX</span>
-                                @if($sell->cash_amount > 0 || $sell->online_amount > 0)
+                                @if($sale->cash_amount > 0 || $sale->online_amount > 0)
                                     <div class="text-xs text-gray-500 mt-1">
-                                        <span class="text-blue-600">₹{{ number_format($sell->cash_amount, 2) }}</span> |
-                                        <span class="text-purple-600">₹{{ number_format($sell->online_amount, 2) }}</span>
+                                        <span class="text-blue-600">₹{{ number_format($sale->cash_amount, 2) }}</span> |
+                                        <span class="text-purple-600">₹{{ number_format($sale->online_amount, 2) }}</span>
                                     </div>
                                 @endif
                             @else
-                                <span class="px-2 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-800">{{ strtoupper($sell->payment_mode) }}</span>
+                                <span class="px-2 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-800">{{ strtoupper($sale->payment_mode) }}</span>
                             @endif
                         </td>
                         <td class="px-6 py-4 text-sm">
-                            <span class="px-2 py-1 rounded text-xs font-semibold {{ $sell->payment_status === 'paid' ? 'bg-green-100 text-green-800' : ($sell->payment_status === 'pending' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800') }}">
-                                {{ ucfirst($sell->payment_status) }}
+                            <span class="px-2 py-1 rounded text-xs font-semibold {{ $sale->payment_status === 'paid' ? 'bg-green-100 text-green-800' : ($sale->payment_status === 'pending' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800') }}">
+                                {{ ucfirst($sale->payment_status) }}
                             </span>
                         </td>
                     </tr>

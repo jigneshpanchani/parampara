@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\AddSellPaymentRequest;
-use App\Http\Requests\Admin\StoreSellRequest;
-use App\Http\Requests\Admin\UpdateSellRequest;
+use App\Http\Requests\Admin\AddSalePaymentRequest;
+use App\Http\Requests\Admin\StoreSaleRequest;
+use App\Http\Requests\Admin\UpdateSaleRequest;
 use App\Models\Product;
-use App\Models\Sell;
-use App\Services\SellService;
+use App\Models\Sale;
+use App\Services\SaleService;
 use App\Services\StockService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -16,10 +16,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
-class SellController extends Controller
+class SaleController extends Controller
 {
     public function __construct(
-        private SellService $sellService
+        private SaleService $saleService
     ) {}
 
     /**
@@ -27,14 +27,14 @@ class SellController extends Controller
      */
     public function index(Request $request): View
     {
-        $query = Sell::with(['items.product', 'cashSellInvoice', 'onlineSellInvoice', 'mixSellInvoice'])
-            ->orderBy('sell_date', 'desc');
+        $query = Sale::with(['items.product', 'cashSaleInvoice', 'onlineSaleInvoice', 'mixSaleInvoice'])
+            ->orderBy('sale_date', 'desc');
 
         if ($request->filled('date_from')) {
-            $query->whereDate('sell_date', '>=', $request->date_from);
+            $query->whereDate('sale_date', '>=', $request->date_from);
         }
         if ($request->filled('date_to')) {
-            $query->whereDate('sell_date', '<=', $request->date_to);
+            $query->whereDate('sale_date', '<=', $request->date_to);
         }
         if ($request->filled('payment_mode') && in_array($request->payment_mode, ['cash', 'upi', 'gpay', 'mix'], true)) {
             $query->where('payment_mode', $request->payment_mode);
@@ -50,9 +50,9 @@ class SellController extends Controller
             });
         }
 
-        $sells = $query->paginate(20)->withQueryString();
+        $sales = $query->paginate(20)->withQueryString();
 
-        return view('admin.sells.index', compact('sells'));
+        return view('admin.sales.index', compact('sales'));
     }
 
     /**
@@ -62,56 +62,56 @@ class SellController extends Controller
     {
         $products = Product::active()->orderByName()->get();
 
-        return view('admin.sells.create', compact('products'));
+        return view('admin.sales.create', compact('products'));
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreSellRequest $request): RedirectResponse
+    public function store(StoreSaleRequest $request): RedirectResponse
     {
         $validated = $request->validated();
 
         DB::transaction(function () use ($validated) {
-            $totalAmount = $this->sellService->calculateTotalAmount(
+            $totalAmount = $this->saleService->calculateTotalAmount(
                 $validated['product_id'],
                 $validated['quantity'],
                 $validated['selling_price']
             );
 
-            $attributes = $this->sellService->buildSellAttributes($validated, $totalAmount);
-            $sell = Sell::create($attributes);
+            $attributes = $this->saleService->buildSaleAttributes($validated, $totalAmount);
+            $sale = Sale::create($attributes);
 
-            $this->sellService->createSellItems(
-                $sell,
+            $this->saleService->createSaleItems(
+                $sale,
                 $validated['product_id'],
                 $validated['quantity'],
                 $validated['selling_price']
             );
 
-            StockService::deductStockFromSale($sell->items);
+            StockService::deductStockFromSale($sale->items);
         });
 
-        return redirect()->route('admin.sells.index')
+        return redirect()->route('admin.sales.index')
             ->with('success', 'Sale recorded successfully.');
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Sell $sell): View
+    public function show(Sale $sale): View
     {
-        $sell->load(['items.product', 'sellPayments', 'cashSellInvoice', 'onlineSellInvoice', 'mixSellInvoice']);
-        return view('admin.sells.show', compact('sell'));
+        $sale->load(['items.product', 'salePayments', 'cashSaleInvoice', 'onlineSaleInvoice', 'mixSaleInvoice']);
+        return view('admin.sales.show', compact('sale'));
     }
 
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Sell $sell): View
+    public function edit(Sale $sale): View
     {
-        $sell->load(['items.product', 'sellPayments']);
-        $existingProductIds = $sell->items->pluck('product_id')->all();
+        $sale->load(['items.product', 'salePayments']);
+        $existingProductIds = $sale->items->pluck('product_id')->all();
 
         $products = Product::where(function ($query) use ($existingProductIds) {
             $query->where('is_active', true)
@@ -119,31 +119,31 @@ class SellController extends Controller
         })->orderByName()->get();
 
         // Default: use stored values
-        $displayPaymentMode  = $sell->payment_mode;
-        $displayAmountPaid   = (float) $sell->amount_paid;
-        $displayCashAmount   = (float) ($sell->cash_amount ?? 0);
-        $displayOnlineAmount = (float) ($sell->online_amount ?? 0);
+        $displayPaymentMode  = $sale->payment_mode;
+        $displayAmountPaid   = (float) $sale->amount_paid;
+        $displayCashAmount   = (float) ($sale->cash_amount ?? 0);
+        $displayOnlineAmount = (float) ($sale->online_amount ?? 0);
 
         // If payments were recorded via the Pay modal, reflect them in the form
-        if ($sell->sellPayments->isNotEmpty()) {
-            $displayAmountPaid = (float) $sell->total_paid;
+        if ($sale->salePayments->isNotEmpty()) {
+            $displayAmountPaid = (float) $sale->total_paid;
 
             // Only auto-derive payment mode when none was set at sale time
-            if ($sell->payment_mode === null) {
-                $methods = $sell->sellPayments->pluck('payment_method')->unique()->values();
+            if ($sale->payment_mode === null) {
+                $methods = $sale->salePayments->pluck('payment_method')->unique()->values();
 
                 if ($methods->count() === 1 && in_array($methods[0], ['cash', 'upi', 'gpay'])) {
                     $displayPaymentMode = $methods[0];
                 } elseif ($methods->count() > 1) {
                     $displayPaymentMode  = 'mix';
-                    $displayCashAmount   = (float) $sell->sellPayments->where('payment_method', 'cash')->sum('amount');
-                    $displayOnlineAmount = (float) $sell->sellPayments->whereIn('payment_method', ['upi', 'gpay', 'bank_transfer', 'cheque', 'other'])->sum('amount');
+                    $displayCashAmount   = (float) $sale->salePayments->where('payment_method', 'cash')->sum('amount');
+                    $displayOnlineAmount = (float) $sale->salePayments->whereIn('payment_method', ['upi', 'gpay', 'bank_transfer', 'cheque', 'other'])->sum('amount');
                 }
             }
         }
 
-        return view('admin.sells.edit', compact(
-            'sell', 'products',
+        return view('admin.sales.edit', compact(
+            'sale', 'products',
             'displayPaymentMode', 'displayAmountPaid',
             'displayCashAmount', 'displayOnlineAmount'
         ));
@@ -152,74 +152,74 @@ class SellController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateSellRequest $request, Sell $sell): RedirectResponse
+    public function update(UpdateSaleRequest $request, Sale $sale): RedirectResponse
     {
         $validated = $request->validated();
 
-        DB::transaction(function () use ($validated, $sell) {
-            $totalAmount = $this->sellService->calculateTotalAmount(
+        DB::transaction(function () use ($validated, $sale) {
+            $totalAmount = $this->saleService->calculateTotalAmount(
                 $validated['product_id'],
                 $validated['quantity'],
                 $validated['selling_price']
             );
 
-            $attributes = $this->sellService->buildSellAttributes($validated, $totalAmount);
-            $sell->update($attributes);
+            $attributes = $this->saleService->buildSaleAttributes($validated, $totalAmount);
+            $sale->update($attributes);
 
-            // Sell_payments were pre-filled into amount_paid on the edit form.
+            // sale_payments were pre-filled into amount_paid on the edit form.
             // Delete them so recalculatePaymentStatus() won't double-count.
-            $sell->sellPayments()->delete();
+            $sale->salePayments()->delete();
 
-            StockService::addStockBackFromSale($sell->items);
+            StockService::addStockBackFromSale($sale->items);
 
-            $sell->items()->delete();
-            $this->sellService->createSellItems(
-                $sell,
+            $sale->items()->delete();
+            $this->saleService->createSaleItems(
+                $sale,
                 $validated['product_id'],
                 $validated['quantity'],
                 $validated['selling_price']
             );
 
-            $sell->load('items');
-            StockService::deductStockFromSale($sell->items);
+            $sale->load('items');
+            StockService::deductStockFromSale($sale->items);
         });
 
-        return redirect()->route('admin.sells.index')
+        return redirect()->route('admin.sales.index')
             ->with('success', 'Sale updated successfully.');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Sell $sell): RedirectResponse
+    public function destroy(Sale $sale): RedirectResponse
     {
-        DB::transaction(function () use ($sell) {
-            StockService::addStockBackFromSale($sell->items);
+        DB::transaction(function () use ($sale) {
+            StockService::addStockBackFromSale($sale->items);
 
-            $sell->returns()->delete();
-            $sell->items()->delete();
-            $sell->delete();
+            $sale->returns()->delete();
+            $sale->items()->delete();
+            $sale->delete();
         });
 
-        return redirect()->route('admin.sells.index')
+        return redirect()->route('admin.sales.index')
             ->with('success', 'Sale deleted successfully.');
     }
 
     /**
-     * Get payment details for a sell (JSON).
+     * Get payment details for a sale (JSON).
      */
-    public function getPaymentDetails(Sell $sell): JsonResponse
+    public function getPaymentDetails(Sale $sale): JsonResponse
     {
-        $sell->load('items.product', 'sellPayments');
+        $sale->load('items.product', 'salePayments');
 
-        $items = $sell->items->map(fn ($item) => [
+        $items = $sale->items->map(fn ($item) => [
             'product_name' => $item->product->product_name,
             'quantity' => $item->quantity,
             'selling_price' => number_format($item->selling_price, 2),
             'total_price' => number_format($item->total_price, 2),
         ]);
 
-        $payments = $sell->sellPayments->map(fn ($payment) => [
+        $payments = $sale->salePayments->map(fn ($payment) => [
             'payment_date' => $payment->payment_date->format('d M Y'),
             'amount' => number_format($payment->amount, 2),
             'payment_method' => $payment->getPaymentMethodLabel(),
@@ -227,23 +227,23 @@ class SellController extends Controller
             'notes' => $payment->notes ?? '-',
         ]);
 
-        $totalPaidFromPayments = $sell->getTotalPaidFromPayments();
-        $totalPaid = $sell->amount_paid + $totalPaidFromPayments;
-        $remaining = max(0, $sell->total_amount - $totalPaid);
+        $totalPaidFromPayments = $sale->getTotalPaidFromPayments();
+        $totalPaid = $sale->amount_paid + $totalPaidFromPayments;
+        $remaining = max(0, $sale->total_amount - $totalPaid);
 
         return response()->json([
             'success' => true,
-            'sell' => [
-                'id' => $sell->id,
-                'seller_name' => $sell->seller_name ?? '-',
-                'sell_date' => $sell->sell_date->format('d M Y'),
-                'total_amount' => number_format($sell->total_amount, 2),
-                'initial_paid' => number_format($sell->amount_paid, 2),
+            'sale' => [
+                'id' => $sale->id,
+                'seller_name' => $sale->seller_name ?? '-',
+                'sale_date' => $sale->sale_date->format('d M Y'),
+                'total_amount' => number_format($sale->total_amount, 2),
+                'initial_paid' => number_format($sale->amount_paid, 2),
                 'payments_total' => number_format($totalPaidFromPayments, 2),
                 'total_paid' => number_format($totalPaid, 2),
                 'remaining_amount' => number_format($remaining, 2),
-                'payment_status' => ucfirst($sell->payment_status),
-                'payment_mode' => $sell->payment_mode_label ?: '—',
+                'payment_status' => ucfirst($sale->payment_status),
+                'payment_mode' => $sale->payment_mode_label ?: '—',
             ],
             'items' => $items,
             'payments' => $payments,
@@ -251,13 +251,13 @@ class SellController extends Controller
     }
 
     /**
-     * Add payment for a sell.
+     * Add payment for a sale.
      */
-    public function addPayment(AddSellPaymentRequest $request, Sell $sell): JsonResponse
+    public function addPayment(AddSalePaymentRequest $request, Sale $sale): JsonResponse
     {
         $validated = $request->validated();
 
-        $sell->sellPayments()->create([
+        $sale->salePayments()->create([
             'payment_date' => $validated['payment_date'],
             'amount' => $validated['amount'],
             'payment_method' => $validated['payment_method'],
@@ -265,18 +265,18 @@ class SellController extends Controller
             'notes' => $validated['notes'] ?? null,
         ]);
 
-        $sell->recalculatePaymentStatus();
-        $sell->refresh();
+        $sale->recalculatePaymentStatus();
+        $sale->refresh();
 
-        $totalPaid = $sell->amount_paid + $sell->getTotalPaidFromPayments();
-        $remaining = max(0, $sell->total_amount - $totalPaid);
+        $totalPaid = $sale->amount_paid + $sale->getTotalPaidFromPayments();
+        $remaining = max(0, $sale->total_amount - $totalPaid);
 
         return response()->json([
             'success' => true,
             'message' => 'Payment recorded successfully.',
             'total_paid' => number_format($totalPaid, 2),
             'remaining_amount' => number_format($remaining, 2),
-            'payment_status' => ucfirst($sell->payment_status),
+            'payment_status' => ucfirst($sale->payment_status),
         ]);
     }
 }

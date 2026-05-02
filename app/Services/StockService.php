@@ -4,9 +4,9 @@ namespace App\Services;
 
 use App\Models\Product;
 use App\Models\PurchaseItem;
-use App\Models\SellItem;
+use App\Models\SaleItem;
 use App\Models\PurchaseReturn;
-use App\Models\SellReturn;
+use App\Models\SaleReturn;
 
 class StockService
 {
@@ -43,10 +43,10 @@ class StockService
     /**
      * Deduct stock from sale
      */
-    public static function deductStockFromSale($sellItems)
+    public static function deductStockFromSale($saleItems)
     {
-        foreach ($sellItems as $item) {
-            if ($item instanceof SellItem) {
+        foreach ($saleItems as $item) {
+            if ($item instanceof SaleItem) {
                 $product = $item->product;
                 if ($product) {
                     $product->decrementStock($item->quantity);
@@ -58,10 +58,10 @@ class StockService
     /**
      * Add stock back from sale (when sale is deleted)
      */
-    public static function addStockBackFromSale($sellItems)
+    public static function addStockBackFromSale($saleItems)
     {
-        foreach ($sellItems as $item) {
-            if ($item instanceof SellItem) {
+        foreach ($saleItems as $item) {
+            if ($item instanceof SaleItem) {
                 $product = $item->product;
                 if ($product) {
                     $product->incrementStock($item->quantity);
@@ -93,9 +93,9 @@ class StockService
     }
 
     /**
-     * Add stock from sell return
+     * Add stock from sale return
      */
-    public static function addStockFromSellReturn(SellReturn $return)
+    public static function addStockFromSaleReturn(SaleReturn $return)
     {
         $product = $return->product;
         if ($product) {
@@ -104,9 +104,9 @@ class StockService
     }
 
     /**
-     * Remove stock from sell return (when return is deleted)
+     * Remove stock from sale return (when return is deleted)
      */
-    public static function removeStockFromSellReturn(SellReturn $return)
+    public static function removeStockFromSaleReturn(SaleReturn $return)
     {
         $product = $return->product;
         if ($product) {
@@ -120,14 +120,13 @@ class StockService
     public static function getStockSummary()
     {
         $products = Product::all();
-        
+
         return [
             'total_products' => $products->count(),
             'in_stock' => $products->where('stock_quantity', '>', 10)->count(),
             'low_stock' => $products->whereBetween('stock_quantity', [1, 10])->count(),
             'out_of_stock' => $products->where('stock_quantity', '<=', 0)->count(),
-            'total_value' => $products->sum(fn($p) => ($p->stock_quantity ?? 0) * $p->sell_price),
+            'total_value' => $products->sum(fn($p) => ($p->stock_quantity ?? 0) * $p->selling_price),
         ];
     }
 }
-

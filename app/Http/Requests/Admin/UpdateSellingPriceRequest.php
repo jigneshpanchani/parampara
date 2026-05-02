@@ -4,7 +4,7 @@ namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateSellPriceRequest extends FormRequest
+class UpdateSellingPriceRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -14,7 +14,7 @@ class UpdateSellPriceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'sell_price' => ['required', 'numeric', 'min:0'],
+            'selling_price' => ['required', 'numeric', 'min:0'],
         ];
     }
 }

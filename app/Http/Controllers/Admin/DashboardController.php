@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Sell;
+use App\Models\Sale;
 use App\Models\Purchase;
 use App\Models\Product;
 use App\Models\Stock;
 use App\Models\Expense;
 use App\Models\PurchaseReturn;
-use App\Models\SellReturn;
+use App\Models\SaleReturn;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -20,9 +20,9 @@ class DashboardController extends Controller
     public function index()
     {
         // Sales Metrics
-        $totalSales = Sell::sum('total_amount');
-        $totalSalesCount = Sell::count();
-        $monthlySales = Sell::whereYear('sell_date', now()->year)->whereMonth('sell_date', now()->month)->sum('total_amount');
+        $totalSales = Sale::sum('total_amount');
+        $totalSalesCount = Sale::count();
+        $monthlySales = Sale::whereYear('sale_date', now()->year)->whereMonth('sale_date', now()->month)->sum('total_amount');
 
         // Purchase Metrics
         $totalPurchases = Purchase::sum('total_amount');
@@ -35,21 +35,21 @@ class DashboardController extends Controller
 
         // Return Metrics
         $totalPurchaseReturns = PurchaseReturn::sum('total_return_amount');
-        $totalSellReturns = SellReturn::sum('total_return_amount');
+        $totalSaleReturns = SaleReturn::sum('total_return_amount');
 
         // Profit Calculation
         $totalProfit = $totalSales - $totalPurchases - $totalExpenses;
         $monthlyProfit = $monthlySales - $monthlyPurchases - $monthlyExpenses;
 
         // Payment Metrics
-        $pendingPayments = Sell::where('payment_status', '!=', 'paid')->sum('pending_amount');
+        $pendingPayments = Sale::where('payment_status', '!=', 'paid')->sum('pending_amount');
 
         // Product Metrics
         $totalProducts = Product::count();
         $lowStockProducts = Stock::where('quantity', '<', 10)->count();
 
         // Recent Data
-        $recentSales = Sell::latest()->take(5)->get();
+        $recentSales = Sale::latest()->take(5)->get();
         $recentPurchases = Purchase::latest()->take(5)->get();
         $recentExpenses = Expense::latest()->take(5)->get();
 
@@ -63,7 +63,7 @@ class DashboardController extends Controller
             'totalExpenses',
             'monthlyExpenses',
             'totalPurchaseReturns',
-            'totalSellReturns',
+            'totalSaleReturns',
             'totalProfit',
             'monthlyProfit',
             'pendingPayments',
@@ -80,12 +80,12 @@ class DashboardController extends Controller
      */
     public function financial()
     {
-        $totalSales = Sell::sum('total_amount');
+        $totalSales = Sale::sum('total_amount');
         $totalPurchases = Purchase::sum('total_amount');
         $totalExpenses = Expense::sum('amount');
         $totalProfit = $totalSales - $totalPurchases - $totalExpenses;
 
-        $monthlySales = Sell::whereYear('sell_date', now()->year)->whereMonth('sell_date', now()->month)->sum('total_amount');
+        $monthlySales = Sale::whereYear('sale_date', now()->year)->whereMonth('sale_date', now()->month)->sum('total_amount');
         $monthlyPurchases = Purchase::whereYear('purchase_date', now()->year)->whereMonth('purchase_date', now()->month)->sum('total_amount');
         $monthlyExpenses = Expense::whereYear('expense_date', now()->year)->whereMonth('expense_date', now()->month)->sum('amount');
         $monthlyProfit = $monthlySales - $monthlyPurchases - $monthlyExpenses;

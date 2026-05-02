@@ -7,12 +7,12 @@ use App\Http\Controllers\SettingController;
 use App\Http\Controllers\Admin\StockController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\PurchaseController;
-use App\Http\Controllers\Admin\SellController;
-use App\Http\Controllers\Admin\SellInvoiceController;
+use App\Http\Controllers\Admin\SaleController;
+use App\Http\Controllers\Admin\SaleInvoiceController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ExpenseController;
 use App\Http\Controllers\Admin\PurchaseReturnController;
-use App\Http\Controllers\Admin\SellReturnController;
+use App\Http\Controllers\Admin\SaleReturnController;
 use App\Http\Controllers\Admin\StockClosingController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use Illuminate\Foundation\Application;
@@ -81,7 +81,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/number-setting',   [SettingController::class, 'numberSetting'])->name('number-setting');
     Route::post('/settings/update-number/{id}', [SettingController::class, 'updateNumber'])->name('setting.updateNumber');
 
-    // Admin Routes - Stock Management, Products, Purchases, Sells, Reports
+    // Admin Routes - Stock Management, Products, Purchases, Sales, Reports
     Route::prefix('admin')->name('admin.')->group(function () {
         // Dashboard Routes
         Route::get('dashboard', [AdminDashboardController::class, 'index'])->name('dashboard.index');
@@ -91,21 +91,21 @@ Route::middleware('auth')->group(function () {
         Route::view('stock', 'admin.stock.index')->name('stock.index');
         Route::resource('stocks', StockController::class);
         Route::resource('products', ProductController::class);
-        Route::patch('products/{product}/sell-price', [ProductController::class, 'updateSellPrice'])->name('products.update-sell-price');
+        Route::patch('products/{product}/selling-price', [ProductController::class, 'updateSellingPrice'])->name('products.update-selling-price');
         Route::patch('products/{product}/toggle-status', [ProductController::class, 'toggleStatus'])->name('products.toggle-status');
         Route::resource('purchases', PurchaseController::class);
         Route::get('purchases/{purchase}/payment-details', [PurchaseController::class, 'getPaymentDetails'])->name('purchases.paymentDetails');
         Route::post('purchases/{purchase}/add-payment', [PurchaseController::class, 'addPayment'])->name('purchases.addPayment');
-        Route::resource('sells', SellController::class);
-        Route::get('sells/{sell}/payment-details', [SellController::class, 'getPaymentDetails'])->name('sells.paymentDetails');
-        Route::post('sells/{sell}/add-payment', [SellController::class, 'addPayment'])->name('sells.addPayment');
-        Route::get('sell-invoices/{sellInvoice}/export', [SellInvoiceController::class, 'export'])->name('sell-invoices.export');
-        Route::resource('sell-invoices', SellInvoiceController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
+        Route::resource('sales', SaleController::class);
+        Route::get('sales/{sale}/payment-details', [SaleController::class, 'getPaymentDetails'])->name('sales.paymentDetails');
+        Route::post('sales/{sale}/add-payment', [SaleController::class, 'addPayment'])->name('sales.addPayment');
+        Route::get('sale-invoices/{saleInvoice}/export', [SaleInvoiceController::class, 'export'])->name('sale-invoices.export');
+        Route::resource('sale-invoices', SaleInvoiceController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
         Route::resource('expense-categories', \App\Http\Controllers\Admin\ExpenseCategoryController::class);
         Route::get('expense-categories-list', [\App\Http\Controllers\Admin\ExpenseCategoryController::class, 'getCategories'])->name('expense-categories.list');
         Route::resource('expenses', ExpenseController::class);
         Route::resource('purchase-returns', PurchaseReturnController::class);
-        Route::resource('sell-returns', SellReturnController::class);
+        Route::resource('sale-returns', SaleReturnController::class);
         Route::resource('payments', \App\Http\Controllers\Admin\PaymentController::class);
         Route::post('payments/{payment}/mark-as-paid', [\App\Http\Controllers\Admin\PaymentController::class, 'markAsPaid'])->name('payments.mark-as-paid');
         Route::get('payments/purchase/{purchaseId}', [\App\Http\Controllers\Admin\PaymentController::class, 'getPaymentsByPurchase'])->name('payments.by-purchase');

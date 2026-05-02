@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\PurchaseItem;
 use App\Models\PurchaseReturn;
-use App\Models\SellItem;
-use App\Models\SellReturn;
+use App\Models\SaleItem;
+use App\Models\SaleReturn;
 use App\Models\StockClosing;
 use App\Models\StockClosingItem;
 use Illuminate\Http\RedirectResponse;
@@ -60,11 +60,11 @@ class StockClosingController extends Controller
                 ->whereBetween('return_date', [$startStr, $endStr])
                 ->sum('quantity');
 
-            $sold = (float) SellItem::whereHas('sell', function ($q) use ($startStr, $endStr) {
-                $q->whereBetween('sell_date', [$startStr, $endStr]);
+            $sold = (float) SaleItem::whereHas('sale', function ($q) use ($startStr, $endStr) {
+                $q->whereBetween('sale_date', [$startStr, $endStr]);
             })->where('product_id', $product->id)->sum('quantity');
 
-            $sellReturns = (float) SellReturn::where('product_id', $product->id)
+            $saleReturns = (float) SaleReturn::where('product_id', $product->id)
                 ->whereBetween('return_date', [$startStr, $endStr])
                 ->sum('quantity');
 
@@ -74,7 +74,7 @@ class StockClosingController extends Controller
                 'purchased_qty'        => $purchased,
                 'purchase_returns_qty' => $purchaseReturns,
                 'sold_qty'             => $sold,
-                'sell_returns_qty'     => $sellReturns,
+                'sale_returns_qty'     => $saleReturns,
             ];
         });
 
@@ -135,7 +135,7 @@ class StockClosingController extends Controller
                     'purchased_qty'        => 0,
                     'purchase_returns_qty' => 0,
                     'sold_qty'             => 0,
-                    'sell_returns_qty'     => 0,
+                    'sale_returns_qty'     => 0,
                     'expected_stock'       => 0,
                     'actual_stock'         => (float) ($request->actual_stock[$i] ?? 0),
                     'difference'           => 0,
@@ -152,7 +152,7 @@ class StockClosingController extends Controller
                     'purchased_qty'        => 0,
                     'purchase_returns_qty' => 0,
                     'sold_qty'             => 0,
-                    'sell_returns_qty'     => 0,
+                    'sale_returns_qty'     => 0,
                     'expected_stock'       => 0,
                     'actual_stock'         => 0,
                     'difference'           => 0,

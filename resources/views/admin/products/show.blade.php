@@ -56,7 +56,7 @@
                     </div>
                     <div>
                         <p class="text-xs text-gray-500 uppercase font-semibold">Selling Price</p>
-                        <p class="text-gray-900 font-medium">₹{{ number_format($product->sell_price, 2) }}</p>
+                        <p class="text-gray-900 font-medium">₹{{ number_format($product->selling_price, 2) }}</p>
                     </div>
                 </div>
 

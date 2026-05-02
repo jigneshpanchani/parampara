@@ -3,10 +3,10 @@
 @section('title', 'Sales Returns')
 
 @section('content')
-<div class="container mx-auto px-4 py-8">
+<div class="container mx-auto">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-900">Sales Returns</h1>
-        <a href="{{ route('admin.sell-returns.create') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+        <a href="{{ route('admin.sale-returns.create') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
             Add Return
         </a>
     </div>
@@ -31,24 +31,24 @@
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-4 text-sm text-gray-500">{{ $returns->firstItem() + $index }}</td>
                         <td class="px-6 py-4 text-sm text-gray-900">{{ $return->return_date->format('d M Y') }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-600">Sale #{{ $return->sell_id }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-600">Sale #{{ $return->sale_id }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">{{ $return->product->product_name }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">{{ $return->quantity }}</td>
                         <td class="px-6 py-4 text-sm text-gray-900 font-semibold">₹{{ number_format($return->total_return_amount, 2) }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">{{ $return->reason ?? '-' }}</td>
                         <td class="px-6 py-4 text-sm flex gap-3">
-                            <a href="{{ route('admin.sell-returns.show', $return) }}" class="text-green-500 hover:text-green-700 transition" title="View">
+                            <a href="{{ route('admin.sale-returns.show', $return) }}" class="text-green-500 hover:text-green-700 transition" title="View">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                 </svg>
                             </a>
-                            <a href="{{ route('admin.sell-returns.edit', $return) }}" class="text-blue-500 hover:text-blue-700 transition" title="Edit">
+                            <a href="{{ route('admin.sale-returns.edit', $return) }}" class="text-blue-500 hover:text-blue-700 transition" title="Edit">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                 </svg>
                             </a>
-                            <form action="{{ route('admin.sell-returns.destroy', $return) }}" method="POST" class="inline delete-form" data-item-name="Return #{{ $return->id }}">
+                            <form action="{{ route('admin.sale-returns.destroy', $return) }}" method="POST" class="inline delete-form" data-item-name="Return #{{ $return->id }}">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="text-red-500 hover:text-red-700 transition" title="Delete">
@@ -61,7 +61,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="px-6 py-4 text-center text-gray-500">No sell returns found</td>
+                        <td colspan="8" class="px-6 py-4 text-center text-gray-500">No sale returns found</td>
                     </tr>
                 @endforelse
             </tbody>

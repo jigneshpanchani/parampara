@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Sell;
+use App\Models\Sale;
 use App\Models\Purchase;
 use App\Models\Product;
 use App\Models\Expense;
@@ -16,10 +16,10 @@ class ReportController extends Controller
      */
     public function index()
     {
-        $totalSales = Sell::sum('total_amount');
+        $totalSales = Sale::sum('total_amount');
         $totalPurchases = Purchase::sum('total_amount');
         $totalProfit = $totalSales - $totalPurchases;
-        $pendingPayments = Sell::where('payment_status', '!=', 'paid')->sum('pending_amount');
+        $pendingPayments = Sale::where('payment_status', '!=', 'paid')->sum('pending_amount');
         $totalProducts = Product::count();
 
         return view('admin.reports.index', compact(
@@ -40,11 +40,11 @@ class ReportController extends Controller
         $endDate = $request->input('end_date');
         $paymentMode = $request->input('payment_mode');
 
-        $query = Sell::with('items.product', 'returns');
+        $query = Sale::with('items.product', 'returns');
 
         // Apply date filter if provided
         if ($startDate && $endDate) {
-            $query->whereBetween('sell_date', [$startDate, $endDate]);
+            $query->whereBetween('sale_date', [$startDate, $endDate]);
         }
 
         // Apply payment mode filter if provided
@@ -52,31 +52,31 @@ class ReportController extends Controller
             $query->where('payment_mode', $paymentMode);
         }
 
-        $sells = $query->orderBy('sell_date', 'desc')->get();
+        $sales = $query->orderBy('sale_date', 'desc')->get();
 
         // Get all products for grouping
         $products = Product::all();
 
         // Calculate totals
-        $totalSales = $sells->sum('total_amount');
-        $totalQuantity = $sells->flatMap->items->sum('quantity');
-        $paidAmount = $sells->sum('total_amount') - $sells->sum('pending_amount');
-        $pendingAmount = $sells->sum('pending_amount');
+        $totalSales = $sales->sum('total_amount');
+        $totalQuantity = $sales->flatMap->items->sum('quantity');
+        $paidAmount = $sales->sum('total_amount') - $sales->sum('pending_amount');
+        $pendingAmount = $sales->sum('pending_amount');
         $totalExpenses = Expense::whereBetween('expense_date', [$startDate ?? now()->startOfMonth(), $endDate ?? now()])->sum('amount');
 
         // Calculate cash and online sales separately
-        $cashSales = $sells->where('payment_mode', 'cash')->sum('total_amount');
-        $onlineSales = $sells->whereIn('payment_mode', ['upi', 'gpay'])->sum('total_amount');
-        $mixSales = $sells->where('payment_mode', 'mix')->sum('total_amount');
+        $cashSales = $sales->where('payment_mode', 'cash')->sum('total_amount');
+        $onlineSales = $sales->whereIn('payment_mode', ['upi', 'gpay'])->sum('total_amount');
+        $mixSales = $sales->where('payment_mode', 'mix')->sum('total_amount');
 
         // Add cash and online amounts from mix payments to respective totals
-        $cashSales += $sells->where('payment_mode', 'mix')->sum('cash_amount');
-        $onlineSales += $sells->where('payment_mode', 'mix')->sum('online_amount');
+        $cashSales += $sales->where('payment_mode', 'mix')->sum('cash_amount');
+        $onlineSales += $sales->where('payment_mode', 'mix')->sum('online_amount');
 
         // Calculate product-wise quantity breakdown
         $quantityByProduct = [];
-        foreach ($sells as $sell) {
-            foreach ($sell->items as $item) {
+        foreach ($sales as $sale) {
+            foreach ($sale->items as $item) {
                 $productCode = $item->product?->product_code ?? 'Unknown';
                 if (!isset($quantityByProduct[$productCode])) {
                     $quantityByProduct[$productCode] = 0;
@@ -88,7 +88,7 @@ class ReportController extends Controller
         ksort($quantityByProduct);
 
         return view('admin.reports.sales', compact(
-            'sells',
+            'sales',
             'products',
             'totalSales',
             'totalQuantity',
@@ -249,19 +249,19 @@ class ReportController extends Controller
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
 
-        $query = Sell::with('items.product', 'returns');
+        $query = Sale::with('items.product', 'returns');
 
         if ($startDate && $endDate) {
-            $query->whereBetween('sell_date', [$startDate, $endDate]);
+            $query->whereBetween('sale_date', [$startDate, $endDate]);
         }
 
-        $sells = $query->orderBy('sell_date', 'desc')->get();
+        $sales = $query->orderBy('sale_date', 'desc')->get();
         $products = Product::orderBy('id')->get();
 
         // Create Excel file
         $fileName = 'Sales_Report_' . ($startDate ? date('M-Y', strtotime($startDate)) : 'All') . '.xlsx';
 
-        return response()->streamDownload(function () use ($sells, $products, $startDate, $endDate) {
+        return response()->streamDownload(function () use ($sales, $products, $startDate, $endDate) {
             $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
 
@@ -296,13 +296,13 @@ class ReportController extends Controller
             $expenseDetailsCol = $expenseCol + 1;
             $finalTotalCol = $expenseDetailsCol + 1;
 
-            // Group sells by date
-            $sellsByDate = $sells->groupBy(function ($sell) {
-                return $sell->sell_date->format('d-m-Y');
+            // Group sales by date
+            $salesByDate = $sales->groupBy(function ($sale) {
+                return $sale->sale_date->format('d-m-Y');
             });
 
             // Sort dates in ascending order
-            /*$sellsByDate = $sellsByDate->sortKeys(function ($a, $b) {
+            /*$salesByDate = $salesByDate->sortKeys(function ($a, $b) {
                 return strtotime(str_replace('-', '/', $a)) <=> strtotime(str_replace('-', '/', $b));
             });*/
 
@@ -317,7 +317,7 @@ class ReportController extends Controller
                 $productTotals[$product->product_code] = 0;
             }
 
-            foreach ($sellsByDate as $date => $dateSells) {
+            foreach ($salesByDate as $date => $dateSales) {
                 // Get product quantities for this date
                 $productQtys = [];
                 foreach ($products as $product) {
@@ -329,19 +329,19 @@ class ReportController extends Controller
                 $dateReturnAmount = 0;
                 $dateExpenseAmount = 0;
 
-                foreach ($dateSells as $sell) {
+                foreach ($dateSales as $sale) {
                     // Separate cash and online sales
-                    if ($sell->payment_mode === 'cash') {
-                        $dateCashAmount += $sell->total_amount;
-                    } elseif (in_array($sell->payment_mode, ['upi', 'gpay'])) {
-                        $dateOnlineAmount += $sell->total_amount;
-                    } elseif ($sell->payment_mode === 'mix') {
+                    if ($sale->payment_mode === 'cash') {
+                        $dateCashAmount += $sale->total_amount;
+                    } elseif (in_array($sale->payment_mode, ['upi', 'gpay'])) {
+                        $dateOnlineAmount += $sale->total_amount;
+                    } elseif ($sale->payment_mode === 'mix') {
                         // For mix payments, add cash and online amounts separately
-                        $dateCashAmount += $sell->cash_amount ?? 0;
-                        $dateOnlineAmount += $sell->online_amount ?? 0;
+                        $dateCashAmount += $sale->cash_amount ?? 0;
+                        $dateOnlineAmount += $sale->online_amount ?? 0;
                     }
 
-                    foreach ($sell->items as $item) {
+                    foreach ($sale->items as $item) {
                         $code = $item->product?->product_code ?? '';
                         if ($code && isset($productQtys[$code])) {
                             $productQtys[$code] += $item->quantity;
@@ -350,8 +350,8 @@ class ReportController extends Controller
                 }
 
                 // Get returns for this date
-                foreach ($dateSells as $sell) {
-                    foreach ($sell->returns as $return) {
+                foreach ($dateSales as $sale) {
+                    foreach ($sale->returns as $return) {
                         $dateReturnAmount += $return->total_return_amount;
                     }
                 }
@@ -390,8 +390,8 @@ class ReportController extends Controller
 
                 // Write return details (dynamic column)
                 $returnDetails = '';
-                foreach ($dateSells as $sell) {
-                    foreach ($sell->returns as $return) {
+                foreach ($dateSales as $sale) {
+                    foreach ($sale->returns as $return) {
                         $returnDetails .= ($return->product?->product_code ?? 'N/A') . ': ' . $return->quantity . '; ';
                     }
                 }
@@ -480,10 +480,10 @@ class ReportController extends Controller
             }
 
             // Aggregate data by product and payment mode
-            foreach ($sells as $sell) {
-                foreach ($sell->items as $item) {
+            foreach ($sales as $sale) {
+                foreach ($sale->items as $item) {
                     $code = $item->product?->product_code ?? '';
-                    $paymentMode = $sell->payment_mode;
+                    $paymentMode = $sale->payment_mode;
 
                     if ($code && isset($productPaymentQty[$code][$paymentMode])) {
                         $productPaymentQty[$code][$paymentMode] += $item->quantity;
@@ -585,22 +585,22 @@ class ReportController extends Controller
      */
     public function stock()
     {
-        $products = Product::with('purchaseItems', 'sellItems', 'purchaseReturns', 'sellReturns')->get();
+        $products = Product::with('purchaseItems', 'saleItems', 'purchaseReturns', 'saleReturns')->get();
 
         // Calculate stock data for each product
         $stockData = $products->map(function ($product) {
             $totalPurchase = $product->purchaseItems->sum('quantity');
-            $totalSell = $product->sellItems->sum('quantity');
+            $totalSales = $product->saleItems->sum('quantity');
             $purchaseReturn = $product->purchaseReturns->sum('quantity');
-            $sellReturn = $product->sellReturns->sum('quantity');
-            $availableStock = $totalPurchase - $purchaseReturn - $totalSell + $sellReturn;
+            $saleReturn = $product->saleReturns->sum('quantity');
+            $availableStock = $totalPurchase - $purchaseReturn - $totalSales + $saleReturn;
 
             return [
                 'product' => $product,
                 'total_purchase' => $totalPurchase,
-                'total_sell' => $totalSell,
+                'total_sales' => $totalSales,
                 'purchase_return' => $purchaseReturn,
-                'sell_return' => $sellReturn,
+                'sale_return' => $saleReturn,
                 'available_stock' => max(0, $availableStock),
             ];
         });

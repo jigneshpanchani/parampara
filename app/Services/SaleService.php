@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
-use App\Models\Sell;
-use App\Models\SellItem;
+use App\Models\Sale;
+use App\Models\SaleItem;
 use Illuminate\Support\Collection;
 
-class SellService
+class SaleService
 {
     /**
      * Calculate total amount from product items.
@@ -63,9 +63,9 @@ class SellService
     }
 
     /**
-     * Create sell items for a sell.
+     * Create sale items for a sale.
      */
-    public function createSellItems(Sell $sell, array $productIds, array $quantities, array $sellingPrices): Collection
+    public function createSaleItems(Sale $sale, array $productIds, array $quantities, array $sellingPrices): Collection
     {
         $items = collect();
 
@@ -74,8 +74,8 @@ class SellService
             $price = (float) ($sellingPrices[$key] ?? 0);
             $totalPrice = round($quantity * $price, 2);
 
-            $item = SellItem::create([
-                'sell_id' => $sell->id,
+            $item = SaleItem::create([
+                'sale_id' => $sale->id,
                 'product_id' => $productId,
                 'quantity' => $quantity,
                 'selling_price' => $price,
@@ -88,15 +88,15 @@ class SellService
     }
 
     /**
-     * Build sell attributes for create/update.
+     * Build sale attributes for create/update.
      */
-    public function buildSellAttributes(array $validated, float $totalAmount): array
+    public function buildSaleAttributes(array $validated, float $totalAmount): array
     {
         $payment = $this->resolveMixPayment($validated);
         $status = $this->resolvePaymentStatus($totalAmount, $payment['amount_paid']);
 
         return [
-            'sell_date' => $validated['sell_date'],
+            'sale_date' => $validated['sale_date'],
             'seller_name' => $validated['seller_name'] ?? null,
             'seller_contact_number' => $validated['seller_contact_number'] ?? null,
             'total_amount' => $totalAmount,

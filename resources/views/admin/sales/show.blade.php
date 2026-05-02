@@ -6,10 +6,10 @@
 <div class="max-w-4xl mx-auto">
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold text-gray-800">Sale #{{ $sell->id }}</h2>
+            <h2 class="text-2xl font-bold text-gray-800">Sale #{{ $sale->id }}</h2>
             <div class="flex gap-3">
-                <a href="{{ route('admin.sells.edit', $sell) }}" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">Edit</a>
-                <a href="{{ route('admin.sells.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Back</a>
+                <a href="{{ route('admin.sales.edit', $sale) }}" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">Edit</a>
+                <a href="{{ route('admin.sales.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Back</a>
             </div>
         </div>
 
@@ -20,47 +20,47 @@
                 <dl class="space-y-2">
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-600">Sale Date</dt>
-                        <dd class="text-sm font-semibold text-gray-900">{{ $sell->sell_date->format('d M Y') }}</dd>
+                        <dd class="text-sm font-semibold text-gray-900">{{ $sale->sale_date->format('d M Y') }}</dd>
                     </div>
-                    @if ($sell->cashSellInvoice)
+                    @if ($sale->cashSaleInvoice)
                     <div class="flex justify-between items-center">
                         <dt class="text-sm text-gray-600">Cash invoice</dt>
                         <dd>
-                            <a href="{{ route('admin.sell-invoices.show', $sell->cashSellInvoice) }}" class="text-sm font-mono font-semibold text-blue-600 hover:underline">{{ $sell->cashSellInvoice->invoice_number }}</a>
+                            <a href="{{ route('admin.sale-invoices.show', $sale->cashSaleInvoice) }}" class="text-sm font-mono font-semibold text-blue-600 hover:underline">{{ $sale->cashSaleInvoice->invoice_number }}</a>
                         </dd>
                     </div>
                     @endif
-                    @if ($sell->onlineSellInvoice)
+                    @if ($sale->onlineSaleInvoice)
                     <div class="flex justify-between items-center">
                         <dt class="text-sm text-gray-600">Online invoice</dt>
                         <dd>
-                            <a href="{{ route('admin.sell-invoices.show', $sell->onlineSellInvoice) }}" class="text-sm font-mono font-semibold text-purple-600 hover:underline">{{ $sell->onlineSellInvoice->invoice_number }}</a>
+                            <a href="{{ route('admin.sale-invoices.show', $sale->onlineSaleInvoice) }}" class="text-sm font-mono font-semibold text-purple-600 hover:underline">{{ $sale->onlineSaleInvoice->invoice_number }}</a>
                         </dd>
                     </div>
                     @endif
-                    @if ($sell->mixSellInvoice)
+                    @if ($sale->mixSaleInvoice)
                     <div class="flex justify-between items-center">
                         <dt class="text-sm text-gray-600">Mix invoice</dt>
                         <dd>
-                            <a href="{{ route('admin.sell-invoices.show', $sell->mixSellInvoice) }}" class="text-sm font-mono font-semibold text-indigo-600 hover:underline">{{ $sell->mixSellInvoice->invoice_number }}</a>
+                            <a href="{{ route('admin.sale-invoices.show', $sale->mixSaleInvoice) }}" class="text-sm font-mono font-semibold text-indigo-600 hover:underline">{{ $sale->mixSaleInvoice->invoice_number }}</a>
                         </dd>
                     </div>
                     @endif
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-600">Seller Name</dt>
-                        <dd class="text-sm font-semibold text-gray-900">{{ $sell->seller_name ?? '-' }}</dd>
+                        <dd class="text-sm font-semibold text-gray-900">{{ $sale->seller_name ?? '-' }}</dd>
                     </div>
-                    @if ($sell->seller_contact_number)
+                    @if ($sale->seller_contact_number)
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-600">Contact</dt>
-                        <dd class="text-sm text-gray-900">{{ $sell->seller_contact_number }}</dd>
+                        <dd class="text-sm text-gray-900">{{ $sale->seller_contact_number }}</dd>
                     </div>
                     @endif
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-600">Payment Status</dt>
                         <dd>
-                            <span class="px-2 py-1 rounded text-xs font-semibold {{ $sell->payment_status === 'paid' ? 'bg-green-100 text-green-800' : ($sell->payment_status === 'pending' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800') }}">
-                                {{ ucfirst($sell->payment_status) }}
+                            <span class="px-2 py-1 rounded text-xs font-semibold {{ $sale->payment_status === 'paid' ? 'bg-green-100 text-green-800' : ($sale->payment_status === 'pending' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800') }}">
+                                {{ ucfirst($sale->payment_status) }}
                             </span>
                         </dd>
                     </div>
@@ -73,30 +73,30 @@
                 <dl class="space-y-2">
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-600">Payment Mode</dt>
-                        <dd class="text-sm font-semibold text-gray-900">{{ $sell->payment_mode_label }}</dd>
+                        <dd class="text-sm font-semibold text-gray-900">{{ $sale->payment_mode_label }}</dd>
                     </div>
-                    @if ($sell->payment_mode === 'mix')
+                    @if ($sale->payment_mode === 'mix')
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-600">Cash Amount</dt>
-                        <dd class="text-sm text-blue-700 font-semibold">₹{{ number_format($sell->cash_amount, 2) }}</dd>
+                        <dd class="text-sm text-blue-700 font-semibold">₹{{ number_format($sale->cash_amount, 2) }}</dd>
                     </div>
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-600">Online Amount</dt>
-                        <dd class="text-sm text-purple-700 font-semibold">₹{{ number_format($sell->online_amount, 2) }}</dd>
+                        <dd class="text-sm text-purple-700 font-semibold">₹{{ number_format($sale->online_amount, 2) }}</dd>
                     </div>
                     @endif
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-600">Amount Paid</dt>
-                        <dd class="text-sm font-semibold text-green-600">₹{{ number_format($sell->total_paid, 2) }}</dd>
+                        <dd class="text-sm font-semibold text-green-600">₹{{ number_format($sale->total_paid, 2) }}</dd>
                     </div>
                     <div class="flex justify-between border-t pt-2">
                         <dt class="text-sm font-semibold text-gray-700">Total Amount</dt>
-                        <dd class="text-sm font-bold text-gray-900">₹{{ number_format($sell->total_amount, 2) }}</dd>
+                        <dd class="text-sm font-bold text-gray-900">₹{{ number_format($sale->total_amount, 2) }}</dd>
                     </div>
-                    @if ($sell->pending_amount > 0)
+                    @if ($sale->pending_amount > 0)
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-600">Pending Amount</dt>
-                        <dd class="text-sm font-semibold text-red-600">₹{{ number_format($sell->pending_amount, 2) }}</dd>
+                        <dd class="text-sm font-semibold text-red-600">₹{{ number_format($sale->pending_amount, 2) }}</dd>
                     </div>
                     @endif
                 </dl>
@@ -117,7 +117,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($sell->items as $i => $item)
+                    @foreach ($sale->items as $i => $item)
                         <tr class="border-b">
                             <td class="px-4 py-2 text-sm text-gray-500">{{ $i + 1 }}</td>
                             <td class="px-4 py-2 text-sm">{{ $item->product->product_name ?? '-' }}</td>
@@ -130,18 +130,18 @@
                 <tfoot class="bg-gray-50">
                     <tr>
                         <td colspan="4" class="px-4 py-2 text-right font-semibold text-gray-700">Total</td>
-                        <td class="px-4 py-2 text-right font-bold text-gray-900">₹{{ number_format($sell->total_amount, 2) }}</td>
+                        <td class="px-4 py-2 text-right font-bold text-gray-900">₹{{ number_format($sale->total_amount, 2) }}</td>
                     </tr>
                 </tfoot>
             </table>
         </div>
 
         {{-- Payment History --}}
-        @if ($sell->sellPayments->isNotEmpty())
+        @if ($sale->salePayments->isNotEmpty())
         <div class="mb-6">
             <h3 class="text-lg font-semibold text-gray-800 mb-3">Payment History</h3>
             <div class="space-y-2">
-                @foreach ($sell->sellPayments->sortBy('payment_date') as $payment)
+                @foreach ($sale->salePayments->sortBy('payment_date') as $payment)
                 <div class="flex items-center justify-between bg-green-50 border-l-4 border-green-500 rounded-r px-4 py-2 text-sm">
                     <div class="flex gap-4 items-center">
                         <span class="font-semibold text-green-800">₹{{ number_format($payment->amount, 2) }}</span>
@@ -161,10 +161,10 @@
         </div>
         @endif
 
-        @if ($sell->notes)
+        @if ($sale->notes)
             <div class="bg-gray-50 rounded-lg p-4">
                 <h3 class="text-sm font-semibold text-gray-500 uppercase mb-2">Notes</h3>
-                <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ $sell->notes }}</p>
+                <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ $sale->notes }}</p>
             </div>
         @endif
     </div>

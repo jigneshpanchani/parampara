@@ -3,7 +3,7 @@
 @section('title', 'Edit Sales Return')
 
 @section('content')
-<div class="container mx-auto px-4 py-8">
+<div class="container mx-auto">
     <div class="max-w-6xl mx-auto">
         <h1 class="text-3xl font-bold text-gray-900 mb-6">Edit Sales Return</h1>
 
@@ -17,21 +17,21 @@
             </div>
         @endif
 
-        <form action="{{ route('admin.sell-returns.update', $sellReturn) }}" method="POST" class="bg-white rounded-lg shadow p-6">
+        <form action="{{ route('admin.sale-returns.update', $saleReturn) }}" method="POST" class="bg-white rounded-lg shadow p-6">
             @csrf
             @method('PUT')
 
             <!-- Row 1: Sale & Product -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
-                    <label for="sell_id" class="block text-sm font-semibold text-gray-700 mb-2">Sale</label>
-                    <select id="sell_id" name="sell_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    <label for="sale_id" class="block text-sm font-semibold text-gray-700 mb-2">Sale</label>
+                    <select id="sale_id" name="sale_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                         <option value="">Select a sale</option>
-                        @foreach ($sells as $sell)
-                            <option value="{{ $sell->id }}" {{ old('sell_id', $sellReturn->sell_id) == $sell->id ? 'selected' : '' }}>Sale #{{ $sell->id }} - {{ $sell->sell_date->format('d M Y') }}@if(!empty($sell->seller_name)) ({{ $sell->seller_name }})@endif</option>
+                        @foreach ($sales as $sale)
+                            <option value="{{ $sale->id }}" {{ old('sale_id', $saleReturn->sale_id) == $sale->id ? 'selected' : '' }}>Sale #{{ $sale->id }} - {{ $sale->sale_date->format('d M Y') }}@if(!empty($sale->seller_name)) ({{ $sale->seller_name }})@endif</option>
                         @endforeach
                     </select>
-                    @error('sell_id')
+                    @error('sale_id')
                         <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
                 </div>
@@ -41,7 +41,7 @@
                     <select id="product_id" name="product_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                         <option value="">Select a product</option>
                         @foreach ($products as $product)
-                            <option value="{{ $product->id }}" {{ old('product_id', $sellReturn->product_id) == $product->id ? 'selected' : '' }}>{{ $product->product_name }}</option>
+                            <option value="{{ $product->id }}" {{ old('product_id', $saleReturn->product_id) == $product->id ? 'selected' : '' }}>{{ $product->product_name }}</option>
                         @endforeach
                     </select>
                     @error('product_id')
@@ -54,7 +54,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                     <label for="return_date" class="block text-sm font-semibold text-gray-700 mb-2">Return Date</label>
-                    <input type="date" id="return_date" name="return_date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required value="{{ old('return_date', $sellReturn->return_date->format('Y-m-d')) }}">
+                    <input type="date" id="return_date" name="return_date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required value="{{ old('return_date', $saleReturn->return_date->format('Y-m-d')) }}">
                     @error('return_date')
                         <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
@@ -62,7 +62,7 @@
 
                 <div>
                     <label for="quantity" class="block text-sm font-semibold text-gray-700 mb-2">Quantity</label>
-                    <input type="number" id="quantity" name="quantity" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" min="1" required value="{{ old('quantity', $sellReturn->quantity) }}">
+                    <input type="number" id="quantity" name="quantity" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" min="1" required value="{{ old('quantity', $saleReturn->quantity) }}">
                     @error('quantity')
                         <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
@@ -73,7 +73,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                     <label for="return_price" class="block text-sm font-semibold text-gray-700 mb-2">Return Price (₹)</label>
-                    <input type="number" id="return_price" name="return_price" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required value="{{ old('return_price', $sellReturn->return_price) }}">
+                    <input type="number" id="return_price" name="return_price" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required value="{{ old('return_price', $saleReturn->return_price) }}">
                     @error('return_price')
                         <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
@@ -81,7 +81,7 @@
 
                 <div>
                     <label for="reason" class="block text-sm font-semibold text-gray-700 mb-2">Reason</label>
-                    <input type="text" id="reason" name="reason" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="{{ old('reason', $sellReturn->reason) }}">
+                    <input type="text" id="reason" name="reason" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="{{ old('reason', $saleReturn->reason) }}">
                     @error('reason')
                         <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
@@ -91,7 +91,7 @@
             <!-- Row 4: Notes (Full Width) -->
             <div class="mb-6">
                 <label for="notes" class="block text-sm font-semibold text-gray-700 mb-2">Notes</label>
-                <textarea id="notes" name="notes" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">{{ old('notes', $sellReturn->notes) }}</textarea>
+                <textarea id="notes" name="notes" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">{{ old('notes', $saleReturn->notes) }}</textarea>
                 @error('notes')
                     <span class="text-red-500 text-sm">{{ $message }}</span>
                 @enderror
@@ -101,7 +101,7 @@
                 <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded">
                     Update Return
                 </button>
-                <a href="{{ route('admin.sell-returns.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded">
+                <a href="{{ route('admin.sale-returns.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded">
                     Cancel
                 </a>
             </div>

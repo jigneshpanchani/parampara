@@ -37,7 +37,7 @@
                         <td class="px-6 py-4 text-sm text-gray-900">{{ $product->product_name }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">{{ $product->product_code }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">{{ $product->base_price_range_formatted }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-600 sell-price-cell">{{ $product->sell_price_formatted }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-600 selling-price-cell">{{ $product->selling_price_formatted }}</td>
                         <td class="px-6 py-4 text-sm">
                             @php $status = $product->getStockStatus(); @endphp
                             <span class="px-2 py-1 text-xs font-medium rounded-full
@@ -63,11 +63,11 @@
                             </label>
                         </td>
                         <td class="px-6 py-4 text-sm space-x-3 flex items-center">
-                            <button type="button" class="sell-price-btn text-green-600 hover:text-green-800 text-xl font-bold transition" title="Quick Update Selling Price"
+                            <button type="button" class="selling-price-btn text-green-600 hover:text-green-800 text-xl font-bold transition" title="Quick Update Selling Price"
                                 data-product-id="{{ $product->id }}"
                                 data-product-name="{{ $product->product_name }}"
                                 data-base-price-range="{{ $product->base_price_range_formatted }}"
-                                data-sell-price="{{ $product->sell_price }}">
+                                data-selling-price="{{ $product->selling_price }}">
                                 ₹
                             </button>
                             <a href="{{ route('admin.products.show', $product) }}" class="text-gray-500 hover:text-gray-700 text-xl transition" title="View Product">
@@ -91,29 +91,29 @@
     </div>
 @endif
 
-<!-- Sell Price Update Modal -->
-<div id="sellPriceModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+<!-- Selling Price Update Modal -->
+<div id="sellingPriceModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
         <div class="flex justify-between items-center mb-4">
-            <h3 id="sellPriceModalTitle" class="text-xl font-bold text-gray-800"></h3>
-            <button type="button" onclick="closeSellPriceModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            <h3 id="sellingPriceModalTitle" class="text-xl font-bold text-gray-800"></h3>
+            <button type="button" onclick="closeSellingPriceModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
         </div>
         <p class="text-gray-600 text-sm mb-2">Base Price Range</p>
-        <p id="sellPriceModalBaseRange" class="text-gray-800 font-semibold mb-4"></p>
-        <form id="sellPriceForm" onsubmit="updateSellPrice(event)">
+        <p id="sellingPriceModalBaseRange" class="text-gray-800 font-semibold mb-4"></p>
+        <form id="sellingPriceForm" onsubmit="updateSellingPrice(event)">
             @csrf
-            <input type="hidden" id="sellPriceProductId" name="product_id">
+            <input type="hidden" id="sellingPriceProductId" name="product_id">
             <div class="mb-4">
-                <label for="sellPriceInput" class="block text-sm font-semibold text-gray-700 mb-2">Selling Price</label>
-                <input type="number" id="sellPriceInput" name="sell_price" step="0.01" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                <label for="sellingPriceInput" class="block text-sm font-semibold text-gray-700 mb-2">Selling Price</label>
+                <input type="number" id="sellingPriceInput" name="selling_price" step="0.01" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" required>
             </div>
-            <div id="sellPriceError" class="hidden mb-4 p-2 bg-red-50 text-red-600 text-sm rounded"></div>
-            <div id="sellPriceSuccess" class="hidden mb-4 p-2 bg-green-50 text-green-600 text-sm rounded"></div>
+            <div id="sellingPriceError" class="hidden mb-4 p-2 bg-red-50 text-red-600 text-sm rounded"></div>
+            <div id="sellingPriceSuccess" class="hidden mb-4 p-2 bg-green-50 text-green-600 text-sm rounded"></div>
             <div class="flex justify-end gap-2">
-                <button type="button" onclick="closeSellPriceModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition">
+                <button type="button" onclick="closeSellingPriceModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition">
                     Cancel
                 </button>
-                <button type="submit" id="sellPriceSubmitBtn" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">
+                <button type="submit" id="sellingPriceSubmitBtn" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">
                     Update Selling Price
                 </button>
             </div>
@@ -122,35 +122,35 @@
 </div>
 
 <script>
-function openSellPriceModal(productId, productName, basePriceRange, sellPrice) {
-    document.getElementById('sellPriceModalTitle').textContent = productName;
-    document.getElementById('sellPriceModalBaseRange').textContent = basePriceRange;
-    document.getElementById('sellPriceProductId').value = productId;
-    document.getElementById('sellPriceInput').value = sellPrice;
-    document.getElementById('sellPriceError').classList.add('hidden');
-    document.getElementById('sellPriceSuccess').classList.add('hidden');
-    document.getElementById('sellPriceModal').classList.remove('hidden');
-    document.getElementById('sellPriceInput').focus();
+function openSellingPriceModal(productId, productName, basePriceRange, sellingPrice) {
+    document.getElementById('sellingPriceModalTitle').textContent = productName;
+    document.getElementById('sellingPriceModalBaseRange').textContent = basePriceRange;
+    document.getElementById('sellingPriceProductId').value = productId;
+    document.getElementById('sellingPriceInput').value = sellingPrice;
+    document.getElementById('sellingPriceError').classList.add('hidden');
+    document.getElementById('sellingPriceSuccess').classList.add('hidden');
+    document.getElementById('sellingPriceModal').classList.remove('hidden');
+    document.getElementById('sellingPriceInput').focus();
 }
 
-function closeSellPriceModal() {
-    document.getElementById('sellPriceModal').classList.add('hidden');
+function closeSellingPriceModal() {
+    document.getElementById('sellingPriceModal').classList.add('hidden');
 }
 
-function updateSellPrice(event) {
+function updateSellingPrice(event) {
     event.preventDefault();
-    const productId = document.getElementById('sellPriceProductId').value;
-    const sellPrice = document.getElementById('sellPriceInput').value;
-    const errorEl = document.getElementById('sellPriceError');
-    const successEl = document.getElementById('sellPriceSuccess');
-    const submitBtn = document.getElementById('sellPriceSubmitBtn');
+    const productId = document.getElementById('sellingPriceProductId').value;
+    const sellingPrice = document.getElementById('sellingPriceInput').value;
+    const errorEl = document.getElementById('sellingPriceError');
+    const successEl = document.getElementById('sellingPriceSuccess');
+    const submitBtn = document.getElementById('sellingPriceSubmitBtn');
 
     errorEl.classList.add('hidden');
     successEl.classList.add('hidden');
     submitBtn.disabled = true;
 
-    const url = `/admin/products/${productId}/sell-price`;
-    const token = document.querySelector('#sellPriceForm input[name="_token"]').value;
+    const url = `/admin/products/${productId}/selling-price`;
+    const token = document.querySelector('#sellingPriceForm input[name="_token"]').value;
 
     fetch(url, {
         method: 'PATCH',
@@ -160,23 +160,23 @@ function updateSellPrice(event) {
             'Accept': 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
         },
-        body: JSON.stringify({ sell_price: parseFloat(sellPrice) }),
+        body: JSON.stringify({ selling_price: parseFloat(sellingPrice) }),
     })
     .then(response => response.json().then(data => ({ ok: response.ok, data })))
     .then(({ ok, data }) => {
         if (ok && data.success) {
             successEl.textContent = data.message;
             successEl.classList.remove('hidden');
-            const row = document.querySelector(`button.sell-price-btn[data-product-id="${productId}"]`)?.closest('tr');
+            const row = document.querySelector(`button.selling-price-btn[data-product-id="${productId}"]`)?.closest('tr');
             if (row) {
-                const sellPriceCell = row.querySelector('.sell-price-cell');
-                if (sellPriceCell) {
-                    sellPriceCell.textContent = '₹' + parseFloat(data.sell_price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const sellingPriceCell = row.querySelector('.selling-price-cell');
+                if (sellingPriceCell) {
+                    sellingPriceCell.textContent = '₹' + parseFloat(data.selling_price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 }
             }
-            setTimeout(closeSellPriceModal, 1000);
+            setTimeout(closeSellingPriceModal, 1000);
         } else {
-            const msg = data?.errors?.sell_price?.[0] || data?.message || 'Failed to update sell price.';
+            const msg = data?.errors?.selling_price?.[0] || data?.message || 'Failed to update selling price.';
             errorEl.textContent = msg;
             errorEl.classList.remove('hidden');
         }
@@ -190,23 +190,23 @@ function updateSellPrice(event) {
     });
 }
 
-document.querySelectorAll('.sell-price-btn').forEach(btn => {
+document.querySelectorAll('.selling-price-btn').forEach(btn => {
     btn.addEventListener('click', function() {
-        openSellPriceModal(
+        openSellingPriceModal(
             this.dataset.productId,
             this.dataset.productName,
             this.dataset.basePriceRange,
-            this.dataset.sellPrice
+            this.dataset.sellingPrice
         );
     });
 });
 
-document.getElementById('sellPriceModal')?.addEventListener('click', function(event) {
-    if (event.target === this) closeSellPriceModal();
+document.getElementById('sellingPriceModal')?.addEventListener('click', function(event) {
+    if (event.target === this) closeSellingPriceModal();
 });
 document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape' && !document.getElementById('sellPriceModal').classList.contains('hidden')) {
-        closeSellPriceModal();
+    if (event.key === 'Escape' && !document.getElementById('sellingPriceModal').classList.contains('hidden')) {
+        closeSellingPriceModal();
     }
 });
 

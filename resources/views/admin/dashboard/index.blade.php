@@ -102,7 +102,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-gray-600 text-sm font-semibold">Sales Returns</p>
-                <p class="text-3xl font-bold text-indigo-600">₹{{ number_format($totalSellReturns, 2) }}</p>
+                <p class="text-3xl font-bold text-indigo-600">₹{{ number_format($totalSaleReturns, 2) }}</p>
                 <p class="text-xs text-gray-500 mt-1">Customer returns</p>
             </div>
             <div class="text-5xl opacity-20">↩️</div>
@@ -144,7 +144,7 @@
                 <div class="flex justify-between items-center pb-3 border-b">
                     <div>
                         <p class="text-sm font-semibold text-gray-700">Sale #{{ $sale->id }}</p>
-                        <p class="text-xs text-gray-500">{{ $sale->sell_date->format('d M Y') }}</p>
+                        <p class="text-xs text-gray-500">{{ $sale->sale_date->format('d M Y') }}</p>
                     </div>
                     <p class="text-sm font-bold text-blue-600">₹{{ number_format($sale->total_amount, 2) }}</p>
                 </div>

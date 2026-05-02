@@ -5,13 +5,13 @@
 @section('content')
 <div class="mb-6 flex justify-between items-center">
     <h2 class="text-3xl font-bold text-gray-800">💰 Sales</h2>
-    <a href="{{ route('admin.sells.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+    <a href="{{ route('admin.sales.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
         + Record New Sale
     </a>
 </div>
 
 <div class="bg-white rounded-lg shadow p-4 mb-6">
-    <form method="GET" action="{{ route('admin.sells.index') }}" class="flex flex-wrap items-end gap-4">
+    <form method="GET" action="{{ route('admin.sales.index') }}" class="flex flex-wrap items-end gap-4">
         <div>
             <label for="seller_search" class="block text-sm font-medium text-gray-700 mb-1">Seller</label>
             <input type="text" name="seller_search" id="seller_search" value="{{ request('seller_search') }}"
@@ -49,14 +49,14 @@
         </div>
         <div class="flex gap-2">
             <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm">Filter</button>
-            <a href="{{ route('admin.sells.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded text-sm inline-flex items-center">Clear</a>
+            <a href="{{ route('admin.sales.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded text-sm inline-flex items-center">Clear</a>
         </div>
     </form>
 </div>
 
-@if ($sells->isEmpty())
+@if ($sales->isEmpty())
     <div class="bg-white rounded-lg shadow p-6 text-center">
-        <p class="text-gray-600">No sales found. <a href="{{ route('admin.sells.create') }}" class="text-blue-500 hover:underline">Record one now</a></p>
+        <p class="text-gray-600">No sales found. <a href="{{ route('admin.sales.create') }}" class="text-blue-500 hover:underline">Record one now</a></p>
     </div>
 @else
     <div class="bg-white rounded-lg shadow overflow-hidden">
@@ -77,84 +77,84 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach ($sells as $index => $sell)
+                @foreach ($sales as $index => $sale)
                     <tr class="border-b hover:bg-gray-50">
-                        <td class="px-6 py-4 text-sm text-gray-500">{{ $sells->firstItem() + $index }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-900">{{ $sell->sell_date->format('d M Y') }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ $sales->firstItem() + $index }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-900">{{ $sale->sale_date->format('d M Y') }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">
-                            <div class="font-medium">{{ $sell->seller_name ?? '-' }}</div>
-                            @if($sell->seller_contact_number)
-                                <div class="text-xs text-gray-400">{{ $sell->seller_contact_number }}</div>
+                            <div class="font-medium">{{ $sale->seller_name ?? '-' }}</div>
+                            @if($sale->seller_contact_number)
+                                <div class="text-xs text-gray-400">{{ $sale->seller_contact_number }}</div>
                             @endif
                         </td>
-                        <td class="px-6 py-4 text-sm text-gray-600">₹{{ number_format($sell->total_amount, 2, '.', '') }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-600">₹{{ number_format($sale->total_amount, 2, '.', '') }}</td>
                         <td class="px-6 py-4 text-sm text-green-600 font-semibold">
-                            ₹{{ number_format($sell->total_paid, 2, '.', '') }}
-                            @if($sell->payment_mode === 'mix' && ($sell->cash_amount > 0 || $sell->online_amount > 0))
+                            ₹{{ number_format($sale->total_paid, 2, '.', '') }}
+                            @if($sale->payment_mode === 'mix' && ($sale->cash_amount > 0 || $sale->online_amount > 0))
                                 <div class="text-xs text-gray-500 mt-1">
-                                    <span class="text-blue-600">Cash: ₹{{ number_format($sell->cash_amount, 2, '.', '') }}</span> |
-                                    <span class="text-purple-600">Online: ₹{{ number_format($sell->online_amount, 2, '.', '') }}</span>
+                                    <span class="text-blue-600">Cash: ₹{{ number_format($sale->cash_amount, 2, '.', '') }}</span> |
+                                    <span class="text-purple-600">Online: ₹{{ number_format($sale->online_amount, 2, '.', '') }}</span>
                                 </div>
                             @endif
                         </td>
                         <td class="px-6 py-4 text-sm">
-                            @if($sell->payment_mode)
-                                <span class="px-2 py-1 rounded text-xs font-semibold {{ $sell->payment_mode === 'cash' ? 'bg-blue-100 text-blue-800' : ($sell->payment_mode === 'upi' ? 'bg-purple-100 text-purple-800' : ($sell->payment_mode === 'gpay' ? 'bg-green-100 text-green-800' : 'bg-indigo-100 text-indigo-800')) }}">
-                                    {{ $sell->payment_mode_label }}
+                            @if($sale->payment_mode)
+                                <span class="px-2 py-1 rounded text-xs font-semibold {{ $sale->payment_mode === 'cash' ? 'bg-blue-100 text-blue-800' : ($sale->payment_mode === 'upi' ? 'bg-purple-100 text-purple-800' : ($sale->payment_mode === 'gpay' ? 'bg-green-100 text-green-800' : 'bg-indigo-100 text-indigo-800')) }}">
+                                    {{ $sale->payment_mode_label }}
                                 </span>
                             @else
                                 <span class="text-gray-400 text-xs">—</span>
                             @endif
                         </td>
                         <td class="px-6 py-4 text-sm">
-                            <span class="px-2 py-1 rounded text-xs font-semibold {{ $sell->payment_status === 'paid' ? 'bg-green-100 text-green-800' : ($sell->payment_status === 'pending' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800') }}">
-                                {{ ucfirst($sell->payment_status) }}
+                            <span class="px-2 py-1 rounded text-xs font-semibold {{ $sale->payment_status === 'paid' ? 'bg-green-100 text-green-800' : ($sale->payment_status === 'pending' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800') }}">
+                                {{ ucfirst($sale->payment_status) }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 text-sm text-red-600">₹{{ number_format($sell->pending_amount, 2, '.', '') }}</td>
+                        <td class="px-6 py-4 text-sm text-red-600">₹{{ number_format($sale->pending_amount, 2, '.', '') }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">
-                            @if($sell->notes)
-                                <span class="text-xs" title="{{ $sell->notes }}">{{ Str::limit($sell->notes, 30) }}</span>
+                            @if($sale->notes)
+                                <span class="text-xs" title="{{ $sale->notes }}">{{ Str::limit($sale->notes, 30) }}</span>
                             @else
                                 <span class="text-gray-400">-</span>
                             @endif
                         </td>
                         <td class="px-6 py-4 text-sm text-center">
                             <div class="flex flex-col gap-1 items-center text-xs">
-                                @if($sell->cashSellInvoice)
-                                    <a href="{{ route('admin.sell-invoices.show', $sell->cashSellInvoice) }}" class="font-mono text-blue-700 hover:underline" title="Cash invoice">{{ $sell->cashSellInvoice->invoice_number }}</a>
+                                @if($sale->cashSaleInvoice)
+                                    <a href="{{ route('admin.sale-invoices.show', $sale->cashSaleInvoice) }}" class="font-mono text-blue-700 hover:underline" title="Cash invoice">{{ $sale->cashSaleInvoice->invoice_number }}</a>
                                 @endif
-                                @if($sell->onlineSellInvoice)
-                                    <a href="{{ route('admin.sell-invoices.show', $sell->onlineSellInvoice) }}" class="font-mono text-purple-700 hover:underline" title="Online invoice">{{ $sell->onlineSellInvoice->invoice_number }}</a>
+                                @if($sale->onlineSaleInvoice)
+                                    <a href="{{ route('admin.sale-invoices.show', $sale->onlineSaleInvoice) }}" class="font-mono text-purple-700 hover:underline" title="Online invoice">{{ $sale->onlineSaleInvoice->invoice_number }}</a>
                                 @endif
-                                @if($sell->mixSellInvoice)
-                                    <a href="{{ route('admin.sell-invoices.show', $sell->mixSellInvoice) }}" class="font-mono text-indigo-700 hover:underline" title="Mix invoice">{{ $sell->mixSellInvoice->invoice_number }}</a>
+                                @if($sale->mixSaleInvoice)
+                                    <a href="{{ route('admin.sale-invoices.show', $sale->mixSaleInvoice) }}" class="font-mono text-indigo-700 hover:underline" title="Mix invoice">{{ $sale->mixSaleInvoice->invoice_number }}</a>
                                 @endif
-                                @if(!$sell->cashSellInvoice && !$sell->onlineSellInvoice && !$sell->mixSellInvoice)
+                                @if(!$sale->cashSaleInvoice && !$sale->onlineSaleInvoice && !$sale->mixSaleInvoice)
                                     <span class="text-gray-400">—</span>
                                 @endif
                             </div>
                         </td>
                         <td class="px-6 py-4 text-sm flex gap-3 justify-center items-center">
-                            @if(in_array($sell->payment_status, ['pending', 'partial']))
-                                <button type="button" onclick="openSellPaymentModal({{ $sell->id }})"
+                            @if(in_array($sale->payment_status, ['pending', 'partial']))
+                                <button type="button" onclick="openSalePaymentModal({{ $sale->id }})"
                                     class="px-2 py-1 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded transition whitespace-nowrap"
                                     title="Record / view payments">
                                     Pay
                                 </button>
                             @endif
-                            <a href="{{ route('admin.sells.show', $sell) }}" class="text-green-500 hover:text-green-700 transition" title="View">
+                            <a href="{{ route('admin.sales.show', $sale) }}" class="text-green-500 hover:text-green-700 transition" title="View">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                 </svg>
                             </a>
-                            <a href="{{ route('admin.sells.edit', $sell) }}" class="text-blue-500 hover:text-blue-700 transition" title="Edit">
+                            <a href="{{ route('admin.sales.edit', $sale) }}" class="text-blue-500 hover:text-blue-700 transition" title="Edit">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                 </svg>
                             </a>
-                            <form action="{{ route('admin.sells.destroy', $sell) }}" method="POST" class="inline delete-form" data-item-name="Sale #{{ $sell->id }}">
+                            <form action="{{ route('admin.sales.destroy', $sale) }}" method="POST" class="inline delete-form" data-item-name="Sale #{{ $sale->id }}">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="text-red-500 hover:text-red-700 transition" title="Delete">
@@ -172,19 +172,19 @@
 
     <!-- Pagination Links -->
     <div class="mt-6">
-        {{ $sells->links() }}
+        {{ $sales->links() }}
     </div>
 @endif
 
-<!-- Sell Payment Details Modal -->
-<div id="sellPaymentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 overflow-y-auto pt-4">
+<!-- Sale Payment Details Modal -->
+<div id="salePaymentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 overflow-y-auto pt-4">
     <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-4xl">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-2xl font-bold text-gray-800">Payment Details</h3>
-            <button type="button" onclick="closeSellPaymentModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            <button type="button" onclick="closeSalePaymentModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
         </div>
 
-        <!-- Sell Summary -->
+        <!-- Sale Summary -->
         <div class="bg-gray-50 rounded-lg p-4 mb-6">
             <div class="flex flex-wrap gap-6 items-center">
                 <div class="flex-1 min-w-max">
@@ -193,7 +193,7 @@
                 </div>
                 <div class="flex-1 min-w-max">
                     <p class="text-gray-600 text-xs font-semibold uppercase">Sale Date</p>
-                    <p id="spSellDate" class="text-sm font-semibold text-gray-800"></p>
+                    <p id="spSaleDate" class="text-sm font-semibold text-gray-800"></p>
                 </div>
                 <div class="flex-1 min-w-max">
                     <p class="text-gray-600 text-xs font-semibold uppercase">Payment Mode</p>
@@ -269,7 +269,7 @@
         <!-- Add Payment Form -->
         <div id="spAddPaymentSection" class="border-t pt-4">
             <h4 class="text-lg font-semibold text-gray-800 mb-3">Add New Payment</h4>
-            <form id="spAddPaymentForm" onsubmit="addSellPayment(event)">
+            <form id="spAddPaymentForm" onsubmit="addSalePayment(event)">
                 @csrf
                 <div class="grid grid-cols-4 gap-3 mb-3">
                     <div>
@@ -302,7 +302,7 @@
                     <textarea id="spPaymentNotes" name="notes" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" rows="2" placeholder="Additional details..."></textarea>
                 </div>
                 <div class="flex justify-end gap-2">
-                    <button type="button" onclick="closeSellPaymentModal()" class="px-3 py-1 text-sm bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400">Close</button>
+                    <button type="button" onclick="closeSalePaymentModal()" class="px-3 py-1 text-sm bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400">Close</button>
                     <button type="submit" class="px-3 py-1 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600">Record Payment</button>
                 </div>
             </form>
@@ -311,36 +311,36 @@
 </div>
 
 <script>
-let currentSellId = null;
+let currentSaleId = null;
 
-function openSellPaymentModal(sellId) {
-    currentSellId = sellId;
-    document.getElementById('sellPaymentModal').classList.remove('hidden');
-    loadSellPaymentDetails(sellId);
+function openSalePaymentModal(saleId) {
+    currentSaleId = saleId;
+    document.getElementById('salePaymentModal').classList.remove('hidden');
+    loadSalePaymentDetails(saleId);
 }
 
-function closeSellPaymentModal() {
-    document.getElementById('sellPaymentModal').classList.add('hidden');
-    currentSellId = null;
+function closeSalePaymentModal() {
+    document.getElementById('salePaymentModal').classList.add('hidden');
+    currentSaleId = null;
 }
 
-function loadSellPaymentDetails(sellId) {
-    fetch(`/admin/sells/${sellId}/payment-details`)
+function loadSalePaymentDetails(saleId) {
+    fetch(`/admin/sales/${saleId}/payment-details`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const sell = data.sell;
+                const sale = data.sale;
 
-                document.getElementById('spSellerName').textContent = sell.seller_name;
-                document.getElementById('spSellDate').textContent = sell.sell_date;
-                document.getElementById('spPaymentMode').textContent = sell.payment_mode;
-                document.getElementById('spPaymentStatus').textContent = sell.payment_status;
+                document.getElementById('spSellerName').textContent = sale.seller_name;
+                document.getElementById('spSaleDate').textContent = sale.sale_date;
+                document.getElementById('spPaymentMode').textContent = sale.payment_mode;
+                document.getElementById('spPaymentStatus').textContent = sale.payment_status;
 
-                document.getElementById('spTotalAmount').textContent = '₹' + sell.total_amount;
-                document.getElementById('spInitialPaid').textContent = '₹' + sell.initial_paid;
-                document.getElementById('spPaymentsTotal').textContent = '₹' + sell.payments_total;
-                document.getElementById('spTotalPaid').textContent = '₹' + sell.total_paid;
-                document.getElementById('spRemaining').textContent = '₹' + sell.remaining_amount;
+                document.getElementById('spTotalAmount').textContent = '₹' + sale.total_amount;
+                document.getElementById('spInitialPaid').textContent = '₹' + sale.initial_paid;
+                document.getElementById('spPaymentsTotal').textContent = '₹' + sale.payments_total;
+                document.getElementById('spTotalPaid').textContent = '₹' + sale.total_paid;
+                document.getElementById('spRemaining').textContent = '₹' + sale.remaining_amount;
 
                 // Populate items
                 const itemsTable = document.getElementById('spItemsTable');
@@ -381,27 +381,27 @@ function loadSellPaymentDetails(sellId) {
                 }
 
                 // Set max amount and toggle form visibility
-                const remaining = parseFloat(sell.remaining_amount.replace(/,/g, ''));
+                const remaining = parseFloat(sale.remaining_amount.replace(/,/g, ''));
                 if (remaining <= 0) {
                     document.getElementById('spAddPaymentSection').classList.add('hidden');
                 } else {
                     document.getElementById('spAddPaymentSection').classList.remove('hidden');
                     document.getElementById('spPaymentAmount').max = remaining;
-                    document.getElementById('spPaymentAmount').placeholder = `Max: ₹${sell.remaining_amount}`;
+                    document.getElementById('spPaymentAmount').placeholder = `Max: ₹${sale.remaining_amount}`;
                 }
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            showSellPaymentNotification('Failed to load payment details', 'error');
+            showSalePaymentNotification('Failed to load payment details', 'error');
         });
 }
 
-function addSellPayment(event) {
+function addSalePayment(event) {
     event.preventDefault();
 
     const formData = new FormData(document.getElementById('spAddPaymentForm'));
-    fetch(`/admin/sells/${currentSellId}/add-payment`, {
+    fetch(`/admin/sales/${currentSaleId}/add-payment`, {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('#spAddPaymentForm input[name="_token"]').value,
@@ -411,22 +411,22 @@ function addSellPayment(event) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showSellPaymentNotification('Payment recorded successfully!', 'success');
+            showSalePaymentNotification('Payment recorded successfully!', 'success');
             document.getElementById('spAddPaymentForm').reset();
             document.getElementById('spPaymentDate').value = new Date().toISOString().split('T')[0];
-            loadSellPaymentDetails(currentSellId);
+            loadSalePaymentDetails(currentSaleId);
             setTimeout(() => { location.reload(); }, 2000);
         } else {
-            showSellPaymentNotification(data.message || 'Failed to record payment', 'error');
+            showSalePaymentNotification(data.message || 'Failed to record payment', 'error');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showSellPaymentNotification('An error occurred while recording payment', 'error');
+        showSalePaymentNotification('An error occurred while recording payment', 'error');
     });
 }
 
-function showSellPaymentNotification(message, type) {
+function showSalePaymentNotification(message, type) {
     const notification = document.createElement('div');
     notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white z-[60] ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
     notification.textContent = message;
@@ -434,13 +434,12 @@ function showSellPaymentNotification(message, type) {
     setTimeout(() => { notification.remove(); }, 3000);
 }
 
-document.getElementById('sellPaymentModal')?.addEventListener('click', function(event) {
-    if (event.target === this) closeSellPaymentModal();
+document.getElementById('salePaymentModal')?.addEventListener('click', function(event) {
+    if (event.target === this) closeSalePaymentModal();
 });
 
 document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') closeSellPaymentModal();
+    if (event.key === 'Escape') closeSalePaymentModal();
 });
 </script>
 @endsection
-

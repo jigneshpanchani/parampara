@@ -5,12 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Sell extends Model
+class Sale extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'sell_date',
+        'sale_date',
         'seller_name',
         'seller_contact_number',
         'total_amount',
@@ -24,7 +24,7 @@ class Sell extends Model
     ];
 
     protected $casts = [
-        'sell_date' => 'date',
+        'sale_date' => 'date',
         'total_amount' => 'float',
         'amount_paid' => 'float',
         'cash_amount' => 'float',
@@ -34,26 +34,26 @@ class Sell extends Model
 
     public function items()
     {
-        return $this->hasMany(SellItem::class);
+        return $this->hasMany(SaleItem::class);
     }
 
     public function returns()
     {
-        return $this->hasMany(SellReturn::class);
+        return $this->hasMany(SaleReturn::class);
     }
 
-    public function sellPayments()
+    public function salePayments()
     {
-        return $this->hasMany(SellPayment::class);
+        return $this->hasMany(SalePayment::class);
     }
 
     public function getTotalPaidFromPayments(): float
     {
-        return (float) $this->sellPayments()->sum('amount');
+        return (float) $this->salePayments()->sum('amount');
     }
 
     /**
-     * Total ever paid = initial amount_paid + all subsequent sell_payments.
+     * Total ever paid = initial amount_paid + all subsequent sale_payments.
      * Uses pending_amount as the source of truth since it is kept accurate
      * by recalculatePaymentStatus() after every payment.
      */
@@ -69,7 +69,7 @@ class Sell extends Model
 
     public function recalculatePaymentStatus(): void
     {
-        $payments = $this->sellPayments()->get(['amount', 'payment_method']);
+        $payments = $this->salePayments()->get(['amount', 'payment_method']);
         $totalPaidFromPayments = (float) $payments->sum('amount');
         $totalPaid = $this->amount_paid + $totalPaidFromPayments;
 
@@ -86,7 +86,7 @@ class Sell extends Model
             'pending_amount' => max(0, $this->total_amount - $totalPaid),
         ];
 
-        // Auto-fill payment_mode from sell_payments when it was not set at sale time
+        // Auto-fill payment_mode from sale_payments when it was not set at sale time
         if ($this->payment_mode === null && $payments->isNotEmpty()) {
             $methods = $payments->pluck('payment_method')->unique()->values();
             if ($methods->count() === 1 && in_array($methods[0], ['cash', 'upi', 'gpay'])) {
@@ -99,19 +99,19 @@ class Sell extends Model
         $this->update($updates);
     }
 
-    public function cashSellInvoice()
+    public function cashSaleInvoice()
     {
-        return $this->belongsTo(SellInvoice::class, 'cash_sell_invoice_id');
+        return $this->belongsTo(SaleInvoice::class, 'cash_sale_invoice_id');
     }
 
-    public function onlineSellInvoice()
+    public function onlineSaleInvoice()
     {
-        return $this->belongsTo(SellInvoice::class, 'online_sell_invoice_id');
+        return $this->belongsTo(SaleInvoice::class, 'online_sale_invoice_id');
     }
 
-    public function mixSellInvoice()
+    public function mixSaleInvoice()
     {
-        return $this->belongsTo(SellInvoice::class, 'mix_sell_invoice_id');
+        return $this->belongsTo(SaleInvoice::class, 'mix_sale_invoice_id');
     }
 
     /**
@@ -135,5 +135,4 @@ class Sell extends Model
             default => $this->payment_mode ? strtoupper($this->payment_mode) : '—',
         };
     }
-
 }
