@@ -65,17 +65,16 @@
             color: #111827;
             vertical-align: bottom;
         }
-        /* Vertical product headers — true 90° rotated text via inline SVG.
-           DomPDF doesn't reliably rotate HTML text in tables, but it renders SVG correctly. */
+        /* Vertical headers — stacked characters (one per line). Visually similar to rotated
+           Excel headers but renders deterministically in DomPDF without layout drift. */
         table.report th.vert {
-            padding: 2px 0;
+            font-size: 7.5px;
+            padding: 3px 0 4px 0;
             text-align: center;
             vertical-align: bottom;
-            height: 80px;
-        }
-        table.report th.vert svg {
-            display: block;
-            margin: 0 auto;
+            line-height: 1.05;
+            white-space: nowrap;
+            font-weight: bold;
         }
         table.report td.left, table.report th.left { text-align: left; }
         table.report td.center, table.report th.center { text-align: center; }
@@ -182,50 +181,40 @@
 </div>
 
 <table class="report">
-    {{-- Fixed-layout column widths (sum ~100%).
-         Text columns (Return Details, Notes, Exp.Detail) get the bare minimum so they're not
-         "broad" when empty. Long content wraps inside the narrow column instead. --}}
+    {{-- Fixed-layout column widths summing to exactly 100%.
+         Non-product widths total 65% — products absorb whatever's left so the table fills
+         the page width consistently no matter how many products exist. --}}
     @php
-        $productCount = $products->count();
-        // Total non-product width = 100 - product columns
-        $productPct = $productCount > 0 ? max(1.6, min(3.0, 32 / $productCount)) : 0;
+        $productCount     = $products->count();
+        $nonProductTotal  = 65; // Date 7 + Online 4 + Cash 4 + Return 3 + Return Details 8 + Total 6 + Notes 14 + Expense 4 + Exp.Detail 11 + Net 4 = 65
+        $productSharePct  = 100 - $nonProductTotal; // 35
+        $productPct       = $productCount > 0 ? round($productSharePct / $productCount, 3) : 0;
     @endphp
     <colgroup>
         <col style="width: 7%;">                                        {{-- Date --}}
         @foreach ($products as $product)
             <col style="width: {{ $productPct }}%;">
         @endforeach
-        <col style="width: 3.5%;">  {{-- Online (rotated header) --}}
-        <col style="width: 3.5%;">  {{-- Cash (rotated header) --}}
-        <col style="width: 3%;">    {{-- Return (rotated header) --}}
-        <col style="width: 4%;">    {{-- Return Details (rotated header, narrow column) --}}
+        <col style="width: 4%;">    {{-- Online --}}
+        <col style="width: 4%;">    {{-- Cash --}}
+        <col style="width: 3%;">    {{-- Return --}}
+        <col style="width: 8%;">    {{-- Return Details --}}
         <col style="width: 6%;">    {{-- Total --}}
-        <col style="width: 16%;">   {{-- Notes (largest text column, content wraps) --}}
+        <col style="width: 14%;">   {{-- Notes --}}
         <col style="width: 4%;">    {{-- Expense --}}
-        <col style="width: 13%;">   {{-- Exp.Detail (multi-line content, wraps) --}}
-        <col style="width: 6%;">    {{-- Net --}}
+        <col style="width: 11%;">   {{-- Exp.Detail --}}
+        <col style="width: 4%;">    {{-- Net --}}
     </colgroup>
     <thead>
         <tr>
             <th class="left">Date</th>
-            @php
-                // Inline SVG with -90° rotated text — renders identically to Excel's rotated headers in DomPDF.
-                $vertSvg = function (string $label): string {
-                    $safe = htmlspecialchars($label, ENT_QUOTES | ENT_XML1, 'UTF-8');
-                    return '<svg width="13" height="78" viewBox="0 0 13 78" xmlns="http://www.w3.org/2000/svg">'
-                         . '<text x="9" y="76" font-size="9" font-family="DejaVu Sans, Arial, sans-serif"'
-                         . ' font-weight="bold" fill="#111827"'
-                         . ' transform="rotate(-90, 9, 76)">' . $safe . '</text>'
-                         . '</svg>';
-                };
-            @endphp
             @foreach ($products as $product)
-                <th class="vert">{!! $vertSvg($product->product_code) !!}</th>
+                <th class="vert">{!! implode('<br>', str_split($product->product_code)) !!}</th>
             @endforeach
-            <th class="vert">{!! $vertSvg('Online') !!}</th>
-            <th class="vert">{!! $vertSvg('Cash') !!}</th>
-            <th class="vert">{!! $vertSvg('Return') !!}</th>
-            <th class="vert">{!! $vertSvg('Return Details') !!}</th>
+            <th class="vert">{!! implode('<br>', str_split('Online')) !!}</th>
+            <th class="vert">{!! implode('<br>', str_split('Cash')) !!}</th>
+            <th class="vert">{!! implode('<br>', str_split('Return')) !!}</th>
+            <th class="left">Return Details</th>
             <th>Total</th>
             <th class="left">Notes</th>
             <th>Expense</th>

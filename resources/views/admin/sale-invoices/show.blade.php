@@ -25,6 +25,9 @@
         <a href="{{ route('admin.sale-invoices.export', $saleInvoice) }}" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">
             📥 Download Excel
         </a>
+        <a href="{{ route('admin.sale-invoices.pdf', $saleInvoice) }}" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">
+            📄 Download PDF
+        </a>
         <a href="{{ route('admin.sale-invoices.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">All invoices</a>
     </div>
 </div>

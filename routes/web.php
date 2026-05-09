@@ -102,6 +102,7 @@ Route::middleware('auth')->group(function () {
         Route::post('sales/{sale}/add-payment', [SaleController::class, 'addPayment'])->name('sales.addPayment');
         Route::patch('sales/{sale}/payments/{salePayment}', [SaleController::class, 'updatePayment'])->name('sales.updatePayment');
         Route::get('sale-invoices/{saleInvoice}/export', [SaleInvoiceController::class, 'export'])->name('sale-invoices.export');
+        Route::get('sale-invoices/{saleInvoice}/pdf', [SaleInvoiceController::class, 'pdf'])->name('sale-invoices.pdf');
         Route::resource('sale-invoices', SaleInvoiceController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
         Route::resource('expense-categories', \App\Http\Controllers\Admin\ExpenseCategoryController::class);
         Route::get('expense-categories-list', [\App\Http\Controllers\Admin\ExpenseCategoryController::class, 'getCategories'])->name('expense-categories.list');

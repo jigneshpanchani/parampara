@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\CompanyProfile;
 use App\Models\Sale;
 use App\Models\SaleInvoice;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -267,6 +270,31 @@ class SaleInvoiceController extends Controller
         }, $fileName, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
+    }
+
+    public function pdf(SaleInvoice $saleInvoice): Response
+    {
+        $saleInvoice->loadSalesForDisplay();
+
+        $company = CompanyProfile::first();
+
+        $title = match ($saleInvoice->invoice_type) {
+            SaleInvoice::TYPE_CASH => 'Daily Sales Invoice — Cash',
+            SaleInvoice::TYPE_ONLINE => 'Daily Sales Invoice — Online (UPI / G-Pay)',
+            SaleInvoice::TYPE_MIX => 'Daily Sales Invoice — Mix (Cash + Online)',
+            default => 'Daily Sales Invoice',
+        };
+
+        $pdf = Pdf::loadView('pdf.sale-invoice', [
+            'saleInvoice' => $saleInvoice,
+            'company' => $company,
+            'title' => $title,
+            'generatedAt' => now()->format('d M Y H:i'),
+        ])->setPaper('a4', 'portrait');
+
+        $fileName = $saleInvoice->invoice_number . '_' . now()->format('Y-m-d_His') . '.pdf';
+
+        return $pdf->download($fileName);
     }
 
     /**
