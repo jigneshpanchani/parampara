@@ -63,7 +63,7 @@
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">#</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Date</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Category</th>
-                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Description</th>
+                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Notes</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Amount</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Payment Method</th>
                     <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
@@ -75,7 +75,7 @@
                         <td class="px-6 py-4 text-sm text-gray-500">{{ $expenses->firstItem() + $index }}</td>
                         <td class="px-6 py-4 text-sm text-gray-900">{{ $expense->expense_date->format('d M Y') }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">{{ $expense->expenseCategory?->name ?? '-' }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-600">{{ $expense->description ?? '-' }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-600">{{ $expense->notes ?? '-' }}</td>
                         <td class="px-6 py-4 text-sm text-gray-900 font-semibold">₹{{ number_format($expense->amount, 2) }}</td>
                         <td class="px-6 py-4 text-sm">
                             @if($expense->payment_method == 'Cash')

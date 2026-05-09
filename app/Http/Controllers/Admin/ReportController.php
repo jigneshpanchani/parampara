@@ -408,8 +408,8 @@ class ReportController extends Controller
                 $expenseDetails = '';
                 foreach ($dateExpenses as $expense) {
                     $categoryName = $expense->expenseCategory ? $expense->expenseCategory->name : 'Other';
-                    $description = $expense->description ? $expense->description : $categoryName;
-                    $expenseDetails .= number_format($expense->amount, 0) . '/- ' . $description . '; ';
+                    $label = $expense->notes ? $categoryName . ' - ' . $expense->notes : $categoryName;
+                    $expenseDetails .= number_format($expense->amount, 0) . '/- ' . $label . '; ';
                 }
                 $sheet->setCellValueByColumnAndRow($expenseDetailsCol, $row, trim($expenseDetails));
 

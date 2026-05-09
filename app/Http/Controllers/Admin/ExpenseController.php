@@ -61,7 +61,6 @@ class ExpenseController extends Controller
         $validated = $request->validate([
             'expense_date' => 'required|date',
             'category_id' => 'required|exists:expense_categories,id',
-            'description' => 'nullable|string|max:255',
             'amount' => 'required|numeric|min:0.01',
             'payment_method' => 'required|in:Cash,G-Pay,Online Transfer',
             'notes' => 'nullable|string',
@@ -97,7 +96,6 @@ class ExpenseController extends Controller
         $validated = $request->validate([
             'expense_date' => 'required|date',
             'category_id' => 'required|exists:expense_categories,id',
-            'description' => 'nullable|string|max:255',
             'amount' => 'required|numeric|min:0.01',
             'payment_method' => 'required|in:Cash,G-Pay,Online Transfer',
             'notes' => 'nullable|string',

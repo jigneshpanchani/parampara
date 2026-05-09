@@ -15,15 +15,15 @@ class Expense extends Model
 
     public function getLogDescription(string $event): string
     {
-        return "Expense <strong>{$this->description}</strong> (₹{$this->amount}) has been {$event} by";
+        $label = $this->expenseCategory?->name ?? '';
+        return "Expense <strong>{$label}</strong> (₹{$this->amount}) has been {$event} by";
     }
 
-    protected static $logAttributes = ['expense_date', 'category_id', 'description', 'amount', 'payment_method', 'notes'];
+    protected static $logAttributes = ['expense_date', 'category_id', 'amount', 'payment_method', 'notes'];
 
     protected $fillable = [
         'expense_date',
         'category_id',
-        'description',
         'amount',
         'payment_method',
         'notes',

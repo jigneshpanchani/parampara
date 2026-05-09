@@ -34,13 +34,6 @@
             </dl>
         </div>
 
-        @if ($expense->description)
-            <div class="bg-gray-50 rounded-lg p-4 mb-4">
-                <h3 class="text-sm font-semibold text-gray-500 uppercase mb-2">Description</h3>
-                <p class="text-sm text-gray-700">{{ $expense->description }}</p>
-            </div>
-        @endif
-
         @if ($expense->notes)
             <div class="bg-gray-50 rounded-lg p-4">
                 <h3 class="text-sm font-semibold text-gray-500 uppercase mb-2">Notes</h3>

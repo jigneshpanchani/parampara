@@ -49,16 +49,8 @@
                 </div>
             </div>
 
-            <!-- Row 2: Description & Amount -->
+            <!-- Row 2: Amount -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                    <label for="description" class="block text-sm font-semibold text-gray-700 mb-2">Description <span class="text-gray-500 text-xs">(Optional)</span></label>
-                    <input type="text" id="description" name="description" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Brief description of the expense" value="{{ old('description') }}">
-                    @error('description')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
-                    @enderror
-                </div>
-
                 <div>
                     <label for="amount" class="block text-sm font-semibold text-gray-700 mb-2">Amount (₹)</label>
                     <input type="number" id="amount" name="amount" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0.00" required value="{{ old('amount') }}">
@@ -66,10 +58,6 @@
                         <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
                 </div>
-            </div>
-
-            <!-- Row 3: Payment Method & Notes -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                     <label for="payment_method" class="block text-sm font-semibold text-gray-700 mb-2">Payment Method</label>
                     <select id="payment_method" name="payment_method" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
@@ -79,10 +67,13 @@
                         <option value="Online Transfer" {{ old('payment_method') == 'Online Transfer' ? 'selected' : '' }}>🏦 Online Transfer</option>
                     </select>
                     @error('payment_method')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
                 </div>
+            </div>
 
+            <!-- Row 3: Payment Method & Notes -->
+            <div class="grid grid-cols-2 md:grid-cols-2 gap-6 mb-6">
                 <div>
                     <label for="notes" class="block text-sm font-semibold text-gray-700 mb-2">Notes</label>
                     <textarea id="notes" name="notes" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Additional notes (optional)">{{ old('notes') }}</textarea>
