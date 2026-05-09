@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AddPurchasePaymentRequest;
 use App\Http\Requests\Admin\StorePurchaseRequest;
 use App\Http\Requests\Admin\UpdatePurchaseRequest;
+use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Services\PurchaseService;
@@ -201,12 +202,18 @@ class PurchaseController extends Controller
         ]);
 
         $payments = $purchase->payments->map(fn ($payment) => [
-            'payment_date' => $payment->payment_date->format('d M Y'),
-            'amount' => number_format($payment->amount, 2),
-            'payment_method' => $payment->getPaymentMethodLabel(),
-            'payment_status' => ucfirst($payment->payment_status),
-            'reference_number' => $payment->reference_number ?? '-',
-            'notes' => $payment->notes ?? '-',
+            'id'                   => $payment->id,
+            'payment_date'         => $payment->payment_date->format('d M Y'),
+            'payment_date_raw'     => $payment->payment_date->format('Y-m-d'),
+            'amount'               => number_format($payment->amount, 2),
+            'amount_raw'           => (float) $payment->amount,
+            'payment_method'       => $payment->getPaymentMethodLabel(),
+            'payment_method_raw'   => $payment->payment_method,
+            'payment_status'       => ucfirst($payment->payment_status),
+            'reference_number'     => $payment->reference_number ?? '-',
+            'reference_number_raw' => $payment->reference_number ?? '',
+            'notes'                => $payment->notes ?? '-',
+            'notes_raw'            => $payment->notes ?? '',
         ]);
 
         return response()->json([
@@ -258,6 +265,43 @@ class PurchaseController extends Controller
             ],
             'total_paid' => number_format($purchase->getTotalPaidAmount(), 2),
             'remaining_amount' => number_format($purchase->getRemainingAmount(), 2),
+        ]);
+    }
+
+    /**
+     * Update an existing payment (all editable fields).
+     */
+    public function updatePayment(Request $request, Purchase $purchase, Payment $payment): JsonResponse
+    {
+        abort_if($payment->purchase_id !== $purchase->id, 404);
+
+        $allowedMethods = array_keys(config('payment.purchase_payment_methods', []));
+
+        // Cap = total payable - sum of OTHER payments (so the row's own amount can grow up to remaining + its current value).
+        $otherPaid = $purchase->payments()->where('id', '!=', $payment->id)->sum('amount');
+        $maxAmount = round($purchase->getTotalPayableAmount() - $otherPaid, 2);
+
+        $validated = $request->validate([
+            'payment_date'     => ['required', 'date'],
+            'amount'           => ['required', 'numeric', 'min:0.01', 'max:' . max($maxAmount, 0.01)],
+            'payment_method'   => ['required', 'in:' . implode(',', $allowedMethods)],
+            'reference_number' => ['nullable', 'string', 'max:255'],
+            'notes'            => ['nullable', 'string', 'max:1000'],
+        ], [
+            'amount.max' => "Amount cannot exceed remaining payable (₹{$maxAmount}).",
+        ]);
+
+        $payment->update([
+            'payment_date'     => $validated['payment_date'],
+            'amount'           => $validated['amount'],
+            'payment_method'   => $validated['payment_method'],
+            'reference_number' => $validated['reference_number'] ?? null,
+            'notes'            => $validated['notes'] ?? null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment updated successfully.',
         ]);
     }
 }

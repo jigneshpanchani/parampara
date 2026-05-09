@@ -321,7 +321,7 @@
                         <input type="number" id="paymentAmount" name="amount" step="0.01" min="0.01" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                     </div>
                     <div>
-                        <label for="paymentMethod" class="block text-xs font-semibold text-gray-700 mb-1">Method *</label>
+                        <label for="paymentMethod" class="block text-xs font-semibold text-gray-700 mb-1">Payment Method *</label>
                         <select id="paymentMethod" name="payment_method" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                             <option value="">Select</option>
                             <option value="cash">Cash</option>
@@ -416,14 +416,57 @@ function loadPaymentDetails(purchaseId) {
                     data.payments.forEach(payment => {
                         const paymentDiv = document.createElement('div');
                         paymentDiv.className = 'bg-gray-50 rounded-lg p-2 border-l-4 border-green-500 text-sm';
-                        let refText = payment.reference_number !== '-' ? ` • Ref: ${payment.reference_number}` : '';
-                        let notesText = payment.notes !== '-' ? ` • ${payment.notes}` : '';
+                        paymentDiv.dataset.paymentId = payment.id;
+                        const refText = payment.reference_number !== '-' ? ` • Ref: ${escapeHtml(payment.reference_number)}` : '';
+                        const notesText = payment.notes !== '-' ? ` • ${escapeHtml(payment.notes)}` : '';
+                        const notesValue = escapeHtml(payment.notes_raw || '');
+                        const refValue = escapeHtml(payment.reference_number_raw || '');
+                        const methodOptions = ['cash','cheque','bank_transfer','credit_card','other'].map(key => {
+                            const labels = {cash:'Cash', cheque:'Cheque', bank_transfer:'Bank Transfer', credit_card:'Credit Card', other:'Other'};
+                            const sel = key === payment.payment_method_raw ? 'selected' : '';
+                            return `<option value="${key}" ${sel}>${labels[key]}</option>`;
+                        }).join('');
                         paymentDiv.innerHTML = `
-                            <div class="flex justify-between items-center">
+                            <div class="payment-view flex justify-between items-center">
                                 <div class="flex-1">
                                     <p class="font-semibold text-gray-800">₹${payment.amount} • ${payment.payment_method} • ${payment.payment_date}${refText}${notesText}</p>
                                 </div>
-                                <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded ml-2 whitespace-nowrap">${payment.payment_status}</span>
+                                <div class="flex items-center gap-2 ml-2">
+                                    <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded whitespace-nowrap">${payment.payment_status}</span>
+                                    <button type="button" class="text-blue-500 hover:text-blue-700 transition" title="Edit Payment" onclick="togglePaymentEdit(${payment.id})">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="payment-edit hidden mt-2 space-y-2">
+                                <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Payment Date</label>
+                                        <input type="date" class="payment-edit-date w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" value="${payment.payment_date_raw}">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Amount</label>
+                                        <input type="number" step="0.01" min="0.01" class="payment-edit-amount w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" value="${payment.amount_raw}">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Payment Method</label>
+                                        <select class="payment-edit-method w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                            ${methodOptions}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Reference</label>
+                                        <input type="text" class="payment-edit-reference w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" value="${refValue}" placeholder="Cheque/Txn ID">
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Notes</label>
+                                        <input type="text" class="payment-edit-notes w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" value="${notesValue}" placeholder="Notes">
+                                    </div>
+                                </div>
+                                <div class="flex justify-end gap-2">
+                                    <button type="button" onclick="togglePaymentEdit(${payment.id})" class="px-3 py-1 text-xs bg-gray-300 text-gray-800 rounded hover:bg-gray-400">Cancel</button>
+                                    <button type="button" onclick="savePaymentEdit(${payment.id})" class="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600">Save</button>
+                                </div>
                             </div>
                         `;
                         paymentHistory.appendChild(paymentDiv);
@@ -474,6 +517,74 @@ function addPayment(event) {
     .catch(error => {
         console.error('Error:', error);
         showNotification('An error occurred while recording payment', 'error');
+    });
+}
+
+function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function togglePaymentEdit(paymentId) {
+    const container = document.querySelector(`#paymentHistory [data-payment-id="${paymentId}"]`);
+    if (!container) return;
+    container.querySelector('.payment-view').classList.toggle('hidden');
+    container.querySelector('.payment-edit').classList.toggle('hidden');
+}
+
+function savePaymentEdit(paymentId) {
+    const container = document.querySelector(`#paymentHistory [data-payment-id="${paymentId}"]`);
+    if (!container || !currentPurchaseId) return;
+
+    const payload = {
+        payment_date:     container.querySelector('.payment-edit-date').value,
+        amount:           container.querySelector('.payment-edit-amount').value,
+        payment_method:   container.querySelector('.payment-edit-method').value,
+        reference_number: container.querySelector('.payment-edit-reference').value,
+        notes:            container.querySelector('.payment-edit-notes').value,
+    };
+
+    if (!payload.payment_date)   { showNotification('Payment date is required', 'error'); return; }
+    if (!payload.amount)         { showNotification('Amount is required', 'error'); return; }
+    if (!payload.payment_method) { showNotification('Payment method is required', 'error'); return; }
+
+    const url = `/admin/purchases/${currentPurchaseId}/payments/${paymentId}`;
+    const csrfToken = document.querySelector('input[name="_token"]').value;
+
+    fetch(url, {
+        method: 'PATCH',
+        headers: {
+            'X-CSRF-TOKEN': csrfToken,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        },
+        body: JSON.stringify(payload),
+    })
+    .then(async response => {
+        const data = await response.json().catch(() => ({}));
+        if (response.ok && data.success) {
+            showNotification('Payment updated successfully!', 'success');
+            loadPaymentDetails(currentPurchaseId);
+            // Totals on the list may have shifted — refresh after a beat.
+            setTimeout(() => location.reload(), 1500);
+            return;
+        }
+        // Surface the first Laravel validation error if present.
+        let msg = data.message || 'Failed to update payment';
+        if (data.errors) {
+            const first = Object.values(data.errors)[0];
+            if (Array.isArray(first) && first.length) msg = first[0];
+        }
+        showNotification(msg, 'error');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred while updating payment', 'error');
     });
 }
 

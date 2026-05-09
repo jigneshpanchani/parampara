@@ -96,6 +96,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('purchases', PurchaseController::class);
         Route::get('purchases/{purchase}/payment-details', [PurchaseController::class, 'getPaymentDetails'])->name('purchases.paymentDetails');
         Route::post('purchases/{purchase}/add-payment', [PurchaseController::class, 'addPayment'])->name('purchases.addPayment');
+        Route::patch('purchases/{purchase}/payments/{payment}', [PurchaseController::class, 'updatePayment'])->name('purchases.updatePayment');
         Route::resource('sales', SaleController::class);
         Route::get('sales/{sale}/payment-details', [SaleController::class, 'getPaymentDetails'])->name('sales.paymentDetails');
         Route::post('sales/{sale}/add-payment', [SaleController::class, 'addPayment'])->name('sales.addPayment');
