@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Sale;
+use App\Models\SalePayment;
 use App\Models\Purchase;
 use App\Models\Product;
 use App\Models\Expense;
@@ -58,24 +59,55 @@ class ReportController extends Controller
 
         $sales = $query->orderBy('sale_date', 'desc')->get();
 
+        // Follow-up payments received within the report period (regardless of original sale date).
+        $followUpPaymentsQuery = SalePayment::query();
+        if ($startDate && $endDate) {
+            $followUpPaymentsQuery->whereBetween('payment_date', [$startDate, $endDate]);
+        }
+        if ($paymentMode) {
+            $followUpPaymentsQuery->whereHas('sale', fn ($q) => $q->where('payment_mode', $paymentMode));
+        }
+        $followUpPayments = $followUpPaymentsQuery->get();
+
         // Get all products for grouping
         $products = Product::all();
 
         // Calculate totals
         $totalSales = $sales->sum('total_amount');
         $totalQuantity = $sales->flatMap->items->sum('quantity');
-        $paidAmount = $sales->sum('total_amount') - $sales->sum('pending_amount');
-        $pendingAmount = $sales->sum('pending_amount');
         $totalExpenses = Expense::whereBetween('expense_date', [$startDate ?? now()->startOfMonth(), $endDate ?? now()])->sum('amount');
 
-        // Calculate cash and online sales separately
-        $cashSales = $sales->where('payment_mode', 'cash')->sum('total_amount');
-        $onlineSales = $sales->whereIn('payment_mode', config('payment.sale_modes_online'))->sum('total_amount');
-        $mixSales = $sales->where('payment_mode', 'mix')->sum('total_amount');
+        // Cash / online ACTUALLY received in this period:
+        //   at-sale paid portion (by mode)  +  follow-up sale_payments (by method).
+        // Pending (pay-later) portions are NOT counted as received.
+        $onlineModes = config('payment.sale_modes_online');
+        $cashSales   = 0.0;
+        $onlineSales = 0.0;
+        foreach ($sales as $sale) {
+            if ($sale->payment_mode === 'cash') {
+                $cashSales += (float) $sale->amount_paid;
+            } elseif (in_array($sale->payment_mode, $onlineModes, true)) {
+                $onlineSales += (float) $sale->amount_paid;
+            } elseif ($sale->payment_mode === 'mix') {
+                $cashSales   += (float) ($sale->cash_amount ?? 0);
+                $onlineSales += (float) ($sale->online_amount ?? 0);
+            }
+        }
+        foreach ($followUpPayments as $payment) {
+            if ($payment->payment_method === 'cash') {
+                $cashSales += (float) $payment->amount;
+            } else {
+                $onlineSales += (float) $payment->amount;
+            }
+        }
 
-        // Add cash and online amounts from mix payments to respective totals
-        $cashSales += $sales->where('payment_mode', 'mix')->sum('cash_amount');
-        $onlineSales += $sales->where('payment_mode', 'mix')->sum('online_amount');
+        // Mix card: revenue actually collected via mix-mode sales (cash + online portions of those sales).
+        $mixSales = (float) $sales->where('payment_mode', 'mix')
+            ->sum(fn ($s) => (float) ($s->cash_amount ?? 0) + (float) ($s->online_amount ?? 0));
+
+        // Paid in this period = cash + online actually received in the period.
+        $paidAmount    = $cashSales + $onlineSales;
+        $pendingAmount = $sales->sum('pending_amount');
 
         // Calculate product-wise quantity breakdown
         $quantityByProduct = [];
@@ -262,10 +294,18 @@ class ReportController extends Controller
         $sales = $query->orderBy('sale_date', 'desc')->get();
         $products = Product::orderBy('id')->get();
 
+        // Follow-up payments received within the period (regardless of when the original sale happened).
+        // Eager-load the parent sale so the Notes column can quote the bill date / seller.
+        $followUpPaymentsQuery = SalePayment::with('sale');
+        if ($startDate && $endDate) {
+            $followUpPaymentsQuery->whereBetween('payment_date', [$startDate, $endDate]);
+        }
+        $followUpPayments = $followUpPaymentsQuery->get();
+
         // Create Excel file
         $fileName = 'Sales_Report_' . ($startDate ? date('M-Y', strtotime($startDate)) : 'All') . '.xlsx';
 
-        return response()->streamDownload(function () use ($sales, $products, $startDate, $endDate) {
+        return response()->streamDownload(function () use ($sales, $products, $followUpPayments, $startDate, $endDate) {
             $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
 
@@ -279,7 +319,7 @@ class ReportController extends Controller
             foreach ($products as $product) {
                 $headers[] = $product->product_code;
             }
-            $headers = array_merge($headers, ['Online', 'Cash', 'Return', 'Return Details', 'Total', 'Expense', 'Exp.Detail', 'Total']);
+            $headers = array_merge($headers, ['Online', 'Cash', 'Return', 'Return Details', 'Total', 'Notes', 'Expense', 'Exp.Detail', 'Total']);
 
             // Write headers
             $col = 1;
@@ -296,7 +336,8 @@ class ReportController extends Controller
             $returnCol = $cashCol + 1;
             $returnDetailsCol = $returnCol + 1;
             $totalCol = $returnDetailsCol + 1;
-            $expenseCol = $totalCol + 1;
+            $notesCol = $totalCol + 1;
+            $expenseCol = $notesCol + 1;
             $expenseDetailsCol = $expenseCol + 1;
             $finalTotalCol = $expenseDetailsCol + 1;
 
@@ -305,10 +346,19 @@ class ReportController extends Controller
                 return $sale->sale_date->format('d-m-Y');
             });
 
-            // Sort dates in ascending order
-            /*$salesByDate = $salesByDate->sortKeys(function ($a, $b) {
-                return strtotime(str_replace('-', '/', $a)) <=> strtotime(str_replace('-', '/', $b));
-            });*/
+            // Group follow-up payments by their actual receipt date.
+            $paymentsByDate = $followUpPayments->groupBy(function ($payment) {
+                return $payment->payment_date->format('d-m-Y');
+            });
+
+            // Iterate over the union of dates so days that only had follow-up payments still appear.
+            $allDates = $salesByDate->keys()
+                ->concat($paymentsByDate->keys())
+                ->unique()
+                ->sortByDesc(function ($d) {
+                    return \DateTime::createFromFormat('d-m-Y', $d)->format('Y-m-d');
+                })
+                ->values();
 
             $row = 4;
             $totalCash = 0;
@@ -321,7 +371,12 @@ class ReportController extends Controller
                 $productTotals[$product->product_code] = 0;
             }
 
-            foreach ($salesByDate as $date => $dateSales) {
+            $onlineModes = config('payment.sale_modes_online');
+
+            foreach ($allDates as $date) {
+                $dateSales    = $salesByDate->get($date, collect());
+                $datePayments = $paymentsByDate->get($date, collect());
+
                 // Get product quantities for this date
                 $productQtys = [];
                 foreach ($products as $product) {
@@ -333,16 +388,16 @@ class ReportController extends Controller
                 $dateReturnAmount = 0;
                 $dateExpenseAmount = 0;
 
+                // At-sale contribution: only the portion ACTUALLY paid at sale time, by mode.
+                // Pending pay-later amounts must NOT be counted as received cash/online.
                 foreach ($dateSales as $sale) {
-                    // Separate cash and online sales
                     if ($sale->payment_mode === 'cash') {
-                        $dateCashAmount += $sale->total_amount;
-                    } elseif (in_array($sale->payment_mode, config('payment.sale_modes_online'))) {
-                        $dateOnlineAmount += $sale->total_amount;
+                        $dateCashAmount += (float) $sale->amount_paid;
+                    } elseif (in_array($sale->payment_mode, $onlineModes, true)) {
+                        $dateOnlineAmount += (float) $sale->amount_paid;
                     } elseif ($sale->payment_mode === 'mix') {
-                        // For mix payments, add cash and online amounts separately
-                        $dateCashAmount += $sale->cash_amount ?? 0;
-                        $dateOnlineAmount += $sale->online_amount ?? 0;
+                        $dateCashAmount   += (float) ($sale->cash_amount ?? 0);
+                        $dateOnlineAmount += (float) ($sale->online_amount ?? 0);
                     }
 
                     foreach ($sale->items as $item) {
@@ -350,6 +405,15 @@ class ReportController extends Controller
                         if ($code && isset($productQtys[$code])) {
                             $productQtys[$code] += $item->quantity;
                         }
+                    }
+                }
+
+                // Follow-up payments actually received on this date (for any sale, possibly older).
+                foreach ($datePayments as $payment) {
+                    if ($payment->payment_method === 'cash') {
+                        $dateCashAmount += (float) $payment->amount;
+                    } else {
+                        $dateOnlineAmount += (float) $payment->amount;
                     }
                 }
 
@@ -405,6 +469,26 @@ class ReportController extends Controller
                 $total = ($dateCashAmount + $dateOnlineAmount) - $dateReturnAmount;
                 $sheet->setCellValueByColumnAndRow($totalCol, $row, $total);
 
+                // Build Notes for follow-up payments received this date
+                // (i.e., money received for bills dated other days). Sale-day rows leave Notes empty.
+                $noteParts = [];
+                foreach ($datePayments as $payment) {
+                    $sale = $payment->sale;
+                    $billDate = $sale && $sale->sale_date ? $sale->sale_date->format('d M Y') : '—';
+                    $seller   = $sale && $sale->seller_name ? $sale->seller_name : 'Unknown';
+                    $methodLabel = config("payment.sale_payment_methods.{$payment->payment_method}", strtoupper((string) $payment->payment_method));
+                    $line = '₹' . number_format((float) $payment->amount, 0) . ' ' . $methodLabel
+                          . ' for bill of ' . $billDate . ' (' . $seller . ')';
+                    if (!empty($payment->notes)) {
+                        $line .= ' — ' . $payment->notes;
+                    }
+                    $noteParts[] = $line;
+                }
+                if (!empty($noteParts)) {
+                    $sheet->setCellValueByColumnAndRow($notesCol, $row, implode("\n", $noteParts));
+                    $sheet->getStyleByColumnAndRow($notesCol, $row)->getAlignment()->setWrapText(true);
+                }
+
                 // Write expense (dynamic column)
                 $sheet->setCellValueByColumnAndRow($expenseCol, $row, $dateExpenseAmount > 0 ? $dateExpenseAmount : '');
 
@@ -455,10 +539,15 @@ class ReportController extends Controller
             $sheet->setCellValueByColumnAndRow($expenseCol, $row, $totalExpense);
             $sheet->getStyleByColumnAndRow($expenseCol, $row)->getFont()->setBold(true);
 
-            // Auto-size columns dynamically based on total column count
+            // Auto-size columns dynamically based on total column count.
+            // Notes column gets a fixed width since wrapped multi-line text breaks autoSize.
             $totalColumns = $finalTotalCol;
             for ($i = 1; $i <= $totalColumns; $i++) {
-                $sheet->getColumnDimensionByColumn($i)->setAutoSize(true);
+                if ($i === $notesCol) {
+                    $sheet->getColumnDimensionByColumn($i)->setWidth(55);
+                } else {
+                    $sheet->getColumnDimensionByColumn($i)->setAutoSize(true);
+                }
             }
 
             // Add product-wise payment mode breakdown sections
