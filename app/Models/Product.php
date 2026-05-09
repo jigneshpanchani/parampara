@@ -10,6 +10,25 @@ class Product extends Model
 {
     use HasFactory;
 
+    /**
+     * Status filter values used by Current Stock / Stock Closing screens.
+     */
+    public const STATUS_ALL      = 'all';
+    public const STATUS_ACTIVE   = 'active';
+    public const STATUS_INACTIVE = 'inactive';
+
+    public const STATUSES = [
+        self::STATUS_ALL,
+        self::STATUS_ACTIVE,
+        self::STATUS_INACTIVE,
+    ];
+
+    public const STATUS_LABELS = [
+        self::STATUS_ALL      => 'All',
+        self::STATUS_ACTIVE   => 'Active',
+        self::STATUS_INACTIVE => 'Inactive',
+    ];
+
     protected $fillable = [
         'product_name',
         'product_code',
@@ -89,6 +108,26 @@ class Product extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    /**
+     * Filter by Product::STATUS_* constant. STATUS_ALL (or anything unknown) → no filter.
+     */
+    public function scopeFilterByStatus(Builder $query, ?string $status): Builder
+    {
+        return match ($status) {
+            self::STATUS_ACTIVE   => $query->where('is_active', true),
+            self::STATUS_INACTIVE => $query->where('is_active', false),
+            default               => $query,
+        };
+    }
+
+    /**
+     * Normalize an arbitrary input to a valid status constant; defaults to STATUS_ALL.
+     */
+    public static function normalizeStatus(?string $status): string
+    {
+        return in_array($status, self::STATUSES, true) ? $status : self::STATUS_ALL;
     }
 
     /*
