@@ -34,26 +34,19 @@ class DatabaseSeeder extends Seeder
                     'first_name'  => 'Admin',
                     'last_name' => 'User',
                     'email' => 'admin@parampara.com',
-                    'password' => bcrypt('Parampara@3536'),
+                    'password' => bcrypt('Admin@123'),
                     'role_id' => 1,
                     'email_verified_at' => now(),
                     'status' => 1,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ],
-                [
-                    'first_name'  => 'Test',
-                    'last_name' => 'User',
-                    'email' => 'test@parampara.com',
-                    'password' => bcrypt('test123456'),
-                    'role_id' => 1,
-                    'email_verified_at' => now(),
-                    'status' => 1,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]
             ]);
         }
+
+        $this->call([
+            ExpenseCategorySeeder::class,
+        ]);
 
         if (DB::table('roles')->count() > 0 && DB::table('permissions')->count() > 0) {
 
