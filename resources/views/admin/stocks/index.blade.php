@@ -1,12 +1,12 @@
 @extends('layouts.admin')
 
-@section('title', 'Stock Management')
+@section('title', 'Current Stock')
 
 @section('content')
 <div class="space-y-6">
     <!-- Header with Add Forcefully Button -->
     <div class="flex justify-between items-center">
-        <h2 class="text-3xl font-bold text-gray-800">Stock Management</h2>
+        <h2 class="text-3xl font-bold text-gray-800">📦 Current Stock</h2>
         <div class="flex gap-2">
             <button onclick="openAddStockModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition">
                 + Add Forcefully
@@ -14,6 +14,19 @@
             <a href="{{ route('admin.stock.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition">← Back</a>
         </div>
     </div>
+
+    {{-- Status filter --}}
+    <form method="GET" action="{{ route('admin.stocks.index') }}" class="bg-white rounded-lg shadow p-4 flex items-end gap-3">
+        <div>
+            <label for="status" class="block text-sm font-semibold text-gray-700 mb-1">Product Status</label>
+            <select name="status" id="status" onchange="this.form.submit()"
+                class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-w-[160px]">
+                @foreach (\App\Models\Product::STATUS_LABELS as $value => $label)
+                    <option value="{{ $value }}" {{ $status === $value ? 'selected' : '' }}>{{ $label }}</option>
+                @endforeach
+            </select>
+        </div>
+    </form>
 
     <!-- Products Stock Table -->
     <div class="bg-white rounded-lg shadow overflow-hidden">

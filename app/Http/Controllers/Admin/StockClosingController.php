@@ -49,7 +49,9 @@ class StockClosingController extends Controller
         $startStr = $start->toDateString();
         $endStr   = $end->toDateString();
 
-        $products = Product::orderByName()->get();
+        $status = Product::normalizeStatus($request->input('status'));
+
+        $products = Product::orderByName()->filterByStatus($status)->get();
 
         $rows = $products->map(function (Product $product) use ($startStr, $endStr) {
             $purchased = (float) PurchaseItem::whereHas('purchase', function ($q) use ($startStr, $endStr) {
@@ -82,7 +84,7 @@ class StockClosingController extends Controller
         $suggestedClosingQty = $this->suggestedClosingQty();
 
         return view('admin.stock-closings.index', compact(
-            'rows', 'startDate', 'endDate', 'modalProducts', 'suggestedClosingQty'
+            'rows', 'startDate', 'endDate', 'modalProducts', 'suggestedClosingQty', 'status'
         ));
     }
 

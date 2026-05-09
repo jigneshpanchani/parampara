@@ -11,10 +11,13 @@ class StockController extends Controller
     /**
      * Display a listing of the resource - Show all products with their stock
      */
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::all();
-        return view('admin.stocks.index', compact('products'));
+        $status = Product::normalizeStatus($request->input('status'));
+
+        $products = Product::query()->filterByStatus($status)->get();
+
+        return view('admin.stocks.index', compact('products', 'status'));
     }
 
     /**
