@@ -45,12 +45,12 @@
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-600">{{ $data['product']->product_code }}</td>
                     <td class="px-6 py-4 text-sm text-center text-gray-900 font-semibold">{{ $data['total_purchase'] }}</td>
-                    <td class="px-6 py-4 text-sm text-center text-gray-900 font-semibold">{{ $data['total_sell'] }}</td>
+                    <td class="px-6 py-4 text-sm text-center text-gray-900 font-semibold">{{ $data['total_sales'] }}</td>
                     <td class="px-6 py-4 text-sm text-center">
                         <span class="text-gray-900 font-semibold">
                             -{{ $data['purchase_return'] }}
-                            @if($data['sell_return'] > 0)
-                                +{{ $data['sell_return'] }}
+                            @if($data['sale_return'] > 0)
+                                +{{ $data['sale_return'] }}
                             @endif
                         </span>
                     </td>
