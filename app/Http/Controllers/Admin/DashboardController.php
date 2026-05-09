@@ -46,6 +46,8 @@ class DashboardController extends Controller
 
         // Product Metrics
         $totalProducts = Product::count();
+        $activeProducts = Product::where('is_active', true)->count();
+        $inactiveProducts = $totalProducts - $activeProducts;
         $lowStockProducts = Stock::where('quantity', '<', 10)->count();
 
         // Recent Data
@@ -68,6 +70,8 @@ class DashboardController extends Controller
             'monthlyProfit',
             'pendingPayments',
             'totalProducts',
+            'activeProducts',
+            'inactiveProducts',
             'lowStockProducts',
             'recentSales',
             'recentPurchases',
@@ -111,12 +115,16 @@ class DashboardController extends Controller
     public function inventory()
     {
         $totalProducts = Product::count();
+        $activeProducts = Product::where('is_active', true)->count();
+        $inactiveProducts = $totalProducts - $activeProducts;
         $lowStockProducts = Stock::where('quantity', '<', 10)->get();
         $outOfStockProducts = Stock::where('quantity', '=', 0)->count();
         $totalInventoryValue = Stock::sum(\DB::raw('quantity * unit_price'));
 
         return view('admin.dashboard.inventory', compact(
             'totalProducts',
+            'activeProducts',
+            'inactiveProducts',
             'lowStockProducts',
             'outOfStockProducts',
             'totalInventoryValue'

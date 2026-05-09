@@ -36,7 +36,7 @@ class SaleController extends Controller
         if ($request->filled('date_to')) {
             $query->whereDate('sale_date', '<=', $request->date_to);
         }
-        if ($request->filled('payment_mode') && in_array($request->payment_mode, ['cash', 'upi', 'gpay', 'mix'], true)) {
+        if ($request->filled('payment_mode') && in_array($request->payment_mode, array_keys(config('payment.sale_modes')), true)) {
             $query->where('payment_mode', $request->payment_mode);
         }
         if ($request->filled('payment_status') && in_array($request->payment_status, ['paid', 'pending', 'partial'], true)) {
@@ -132,12 +132,14 @@ class SaleController extends Controller
             if ($sale->payment_mode === null) {
                 $methods = $sale->salePayments->pluck('payment_method')->unique()->values();
 
-                if ($methods->count() === 1 && in_array($methods[0], ['cash', 'upi', 'gpay'])) {
+                $directSaleModes = array_diff(array_keys(config('payment.sale_modes')), ['mix']);
+                $onlinePaymentMethods = array_diff(array_keys(config('payment.sale_payment_methods')), ['cash']);
+                if ($methods->count() === 1 && in_array($methods[0], $directSaleModes)) {
                     $displayPaymentMode = $methods[0];
                 } elseif ($methods->count() > 1) {
                     $displayPaymentMode  = 'mix';
                     $displayCashAmount   = (float) $sale->salePayments->where('payment_method', 'cash')->sum('amount');
-                    $displayOnlineAmount = (float) $sale->salePayments->whereIn('payment_method', ['upi', 'gpay', 'bank_transfer', 'cheque', 'other'])->sum('amount');
+                    $displayOnlineAmount = (float) $sale->salePayments->whereIn('payment_method', $onlinePaymentMethods)->sum('amount');
                 }
             }
         }

@@ -62,11 +62,9 @@
                 </label>
                 <select name="payment_method" id="payment_method" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 @error('payment_method') border-red-500 @enderror" required>
                     <option value="">-- Select Method --</option>
-                    <option value="cash" @selected(old('payment_method') == 'cash')>Cash</option>
-                    <option value="cheque" @selected(old('payment_method') == 'cheque')>Cheque</option>
-                    <option value="bank_transfer" @selected(old('payment_method') == 'bank_transfer')>Bank Transfer</option>
-                    <option value="credit_card" @selected(old('payment_method') == 'credit_card')>Credit Card</option>
-                    <option value="other" @selected(old('payment_method') == 'other')>Other</option>
+                    @foreach (config('payment.purchase_payment_methods') as $value => $label)
+                        <option value="{{ $value }}" @selected(old('payment_method') === $value)>{{ $label }}</option>
+                    @endforeach
                 </select>
                 @error('payment_method')
                 <p class="text-red-600 text-sm mt-1">{{ $message }}</p>

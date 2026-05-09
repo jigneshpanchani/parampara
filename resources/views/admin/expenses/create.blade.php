@@ -62,9 +62,9 @@
                     <label for="payment_method" class="block text-sm font-semibold text-gray-700 mb-2">Payment Method</label>
                     <select id="payment_method" name="payment_method" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                         <option value="">-- Select Payment Method --</option>
-                        <option value="Cash" {{ old('payment_method') == 'Cash' ? 'selected' : '' }}>💵 Cash</option>
-                        <option value="G-Pay" {{ old('payment_method') == 'G-Pay' ? 'selected' : '' }}>📱 G-Pay</option>
-                        <option value="Online Transfer" {{ old('payment_method') == 'Online Transfer' ? 'selected' : '' }}>🏦 Online Transfer</option>
+                        @foreach (config('payment.expense_methods') as $value => $label)
+                            <option value="{{ $value }}" {{ old('payment_method') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
                     </select>
                     @error('payment_method')
                     <span class="text-red-500 text-sm">{{ $message }}</span>

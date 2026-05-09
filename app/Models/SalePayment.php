@@ -30,14 +30,6 @@ class SalePayment extends Model
 
     public function getPaymentMethodLabel(): string
     {
-        return match ($this->payment_method) {
-            'cash' => 'Cash',
-            'upi' => 'UPI',
-            'gpay' => 'G-Pay',
-            'bank_transfer' => 'Bank Transfer',
-            'cheque' => 'Cheque',
-            'other' => 'Other',
-            default => ucfirst($this->payment_method ?? ''),
-        };
+        return config("payment.sale_payment_methods.{$this->payment_method}", ucfirst($this->payment_method ?? ''));
     }
 }

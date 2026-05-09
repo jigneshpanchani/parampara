@@ -32,10 +32,9 @@
             <label for="payment_mode" class="block text-sm font-medium text-gray-700 mb-1">Payment mode</label>
             <select name="payment_mode" id="payment_mode" class="rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm min-w-[140px]">
                 <option value="">All</option>
-                <option value="cash" {{ request('payment_mode') === 'cash' ? 'selected' : '' }}>Cash</option>
-                <option value="upi" {{ request('payment_mode') === 'upi' ? 'selected' : '' }}>UPI</option>
-                <option value="gpay" {{ request('payment_mode') === 'gpay' ? 'selected' : '' }}>G-Pay</option>
-                <option value="mix" {{ request('payment_mode') === 'mix' ? 'selected' : '' }}>Mix</option>
+                @foreach (config('payment.sale_modes') as $value => $label)
+                    <option value="{{ $value }}" {{ request('payment_mode') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                @endforeach
             </select>
         </div>
         <div>
@@ -284,12 +283,9 @@
                         <label for="spPaymentMethod" class="block text-xs font-semibold text-gray-700 mb-1">Method *</label>
                         <select id="spPaymentMethod" name="payment_method" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                             <option value="">Select</option>
-                            <option value="cash">Cash</option>
-                            <option value="upi">UPI</option>
-                            <option value="gpay">G-Pay</option>
-                            <option value="bank_transfer">Bank Transfer</option>
-                            <option value="cheque">Cheque</option>
-                            <option value="other">Other</option>
+                            @foreach (config('payment.sale_payment_methods') as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <div>

@@ -127,12 +127,10 @@ class Sale extends Model
      */
     public function getPaymentModeLabelAttribute(): string
     {
-        return match ($this->payment_mode) {
-            'gpay' => 'G-Pay',
-            'cash' => 'Cash',
-            'upi' => 'UPI',
-            'mix' => 'Mix',
-            default => $this->payment_mode ? strtoupper($this->payment_mode) : '—',
-        };
+        if (! $this->payment_mode) {
+            return '—';
+        }
+
+        return config("payment.sale_modes.{$this->payment_mode}", strtoupper($this->payment_mode));
     }
 }

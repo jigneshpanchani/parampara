@@ -62,7 +62,7 @@ class ExpenseController extends Controller
             'expense_date' => 'required|date',
             'category_id' => 'required|exists:expense_categories,id',
             'amount' => 'required|numeric|min:0.01',
-            'payment_method' => 'required|in:Cash,G-Pay,Online Transfer',
+            'payment_method' => 'required|in:' . implode(',', array_keys(config('payment.expense_methods'))),
             'notes' => 'nullable|string',
         ]);
 
@@ -97,7 +97,7 @@ class ExpenseController extends Controller
             'expense_date' => 'required|date',
             'category_id' => 'required|exists:expense_categories,id',
             'amount' => 'required|numeric|min:0.01',
-            'payment_method' => 'required|in:Cash,G-Pay,Online Transfer',
+            'payment_method' => 'required|in:' . implode(',', array_keys(config('payment.expense_methods'))),
             'notes' => 'nullable|string',
         ]);
 

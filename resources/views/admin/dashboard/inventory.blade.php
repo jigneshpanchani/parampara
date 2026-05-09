@@ -14,7 +14,11 @@
     <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow p-6 border-l-4 border-purple-500">
         <p class="text-gray-600 text-sm font-semibold">Total Products</p>
         <p class="text-3xl font-bold text-purple-600 mt-2">{{ $totalProducts }}</p>
-        <p class="text-xs text-gray-500 mt-2">Active products</p>
+        <p class="text-xs text-gray-500 mt-2">
+            <span class="text-green-600 font-semibold">Active {{ $activeProducts }}</span>
+            &amp;
+            <span class="text-red-600 font-semibold">InActive {{ $inactiveProducts }}</span>
+        </p>
     </div>
 
     <!-- Low Stock Products -->

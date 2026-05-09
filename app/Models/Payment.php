@@ -96,14 +96,7 @@ class Payment extends Model
      */
     public function getPaymentMethodLabel()
     {
-        return match($this->payment_method) {
-            'cash' => 'Cash',
-            'cheque' => 'Cheque',
-            'bank_transfer' => 'Bank Transfer',
-            'credit_card' => 'Credit Card',
-            'other' => 'Other',
-            default => 'Unknown',
-        };
+        return config("payment.purchase_payment_methods.{$this->payment_method}", 'Unknown');
     }
 }
 

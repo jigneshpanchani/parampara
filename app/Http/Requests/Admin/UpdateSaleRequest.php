@@ -14,8 +14,11 @@ class UpdateSaleRequest extends FormRequest
 
     public function rules(): array
     {
+        $saleModes = array_keys(config('payment.sale_modes'));
+        $directModes = array_diff($saleModes, ['mix']);
+
         $paymentMode = $this->input('payment_mode');
-        $isDirectMode = in_array($paymentMode, ['cash', 'upi', 'gpay'], true);
+        $isDirectMode = in_array($paymentMode, $directModes, true);
 
         return [
             'sale_date' => ['required', 'date'],
@@ -31,7 +34,7 @@ class UpdateSaleRequest extends FormRequest
             'quantity.*' => ['required', 'integer', 'min:1'],
             'selling_price' => ['required', 'array', 'min:1'],
             'selling_price.*' => ['required', 'numeric', 'min:0'],
-            'payment_mode' => ['nullable', 'in:cash,upi,gpay,mix'],
+            'payment_mode' => ['nullable', 'in:' . implode(',', $saleModes)],
             'amount_paid' => ['required', 'numeric', $isDirectMode ? 'gt:0' : 'min:0'],
             'cash_amount' => ['nullable', 'numeric', 'min:0'],
             'online_amount' => ['nullable', 'numeric', 'min:0'],

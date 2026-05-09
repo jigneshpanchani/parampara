@@ -79,7 +79,11 @@
             <div>
                 <p class="text-gray-600 text-sm font-semibold">Total Products</p>
                 <p class="text-3xl font-bold text-purple-600">{{ $totalProducts }}</p>
-                <p class="text-xs text-gray-500 mt-1">{{ $lowStockProducts }} low stock</p>
+                <p class="text-xs text-gray-500 mt-1">
+                    <span class="text-green-600 font-semibold">Active {{ $activeProducts }}</span>
+                    &amp;
+                    <span class="text-red-600 font-semibold">InActive {{ $inactiveProducts }}</span>
+                </p>
             </div>
             <div class="text-5xl opacity-20">📦</div>
         </div>

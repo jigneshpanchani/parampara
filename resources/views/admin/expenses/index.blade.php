@@ -40,9 +40,9 @@
                 <select name="payment_method" id="payment_method"
                     class="rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm min-w-[160px]">
                     <option value="">All Methods</option>
-                    <option value="Cash" {{ request('payment_method') === 'Cash' ? 'selected' : '' }}>Cash</option>
-                    <option value="G-Pay" {{ request('payment_method') === 'G-Pay' ? 'selected' : '' }}>G-Pay</option>
-                    <option value="Online Transfer" {{ request('payment_method') === 'Online Transfer' ? 'selected' : '' }}>Online Transfer</option>
+                    @foreach (config('payment.expense_methods') as $value => $label)
+                        <option value="{{ $value }}" {{ request('payment_method') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                    @endforeach
                 </select>
             </div>
             <div class="flex gap-2">

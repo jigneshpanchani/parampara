@@ -21,13 +21,17 @@ class ReportController extends Controller
         $totalProfit = $totalSales - $totalPurchases;
         $pendingPayments = Sale::where('payment_status', '!=', 'paid')->sum('pending_amount');
         $totalProducts = Product::count();
+        $activeProducts = Product::where('is_active', true)->count();
+        $inactiveProducts = $totalProducts - $activeProducts;
 
         return view('admin.reports.index', compact(
             'totalSales',
             'totalPurchases',
             'totalProfit',
             'pendingPayments',
-            'totalProducts'
+            'totalProducts',
+            'activeProducts',
+            'inactiveProducts'
         ));
     }
 
@@ -66,7 +70,7 @@ class ReportController extends Controller
 
         // Calculate cash and online sales separately
         $cashSales = $sales->where('payment_mode', 'cash')->sum('total_amount');
-        $onlineSales = $sales->whereIn('payment_mode', ['upi', 'gpay'])->sum('total_amount');
+        $onlineSales = $sales->whereIn('payment_mode', config('payment.sale_modes_online'))->sum('total_amount');
         $mixSales = $sales->where('payment_mode', 'mix')->sum('total_amount');
 
         // Add cash and online amounts from mix payments to respective totals
@@ -333,7 +337,7 @@ class ReportController extends Controller
                     // Separate cash and online sales
                     if ($sale->payment_mode === 'cash') {
                         $dateCashAmount += $sale->total_amount;
-                    } elseif (in_array($sale->payment_mode, ['upi', 'gpay'])) {
+                    } elseif (in_array($sale->payment_mode, config('payment.sale_modes_online'))) {
                         $dateOnlineAmount += $sale->total_amount;
                     } elseif ($sale->payment_mode === 'mix') {
                         // For mix payments, add cash and online amounts separately
@@ -606,10 +610,14 @@ class ReportController extends Controller
         });
 
         $totalProducts = $products->count();
+        $activeProducts = $products->where('is_active', true)->count();
+        $inactiveProducts = $totalProducts - $activeProducts;
 
         return view('admin.reports.stock', compact(
             'stockData',
-            'totalProducts'
+            'totalProducts',
+            'activeProducts',
+            'inactiveProducts'
         ));
     }
 }

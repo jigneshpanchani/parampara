@@ -16,7 +16,7 @@ class AddSalePaymentRequest extends FormRequest
         return [
             'payment_date' => ['required', 'date'],
             'amount' => ['required', 'numeric', 'min:0.01'],
-            'payment_method' => ['required', 'in:cash,upi,gpay,bank_transfer,cheque,other'],
+            'payment_method' => ['required', 'in:' . implode(',', array_keys(config('payment.sale_payment_methods')))],
             'reference_number' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
         ];

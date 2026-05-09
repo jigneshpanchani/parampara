@@ -278,7 +278,7 @@ class SaleInvoiceController extends Controller
 
         return match ($invoiceType) {
             SaleInvoice::TYPE_CASH => $q->whereNull('cash_sale_invoice_id')->where('payment_mode', 'cash'),
-            SaleInvoice::TYPE_ONLINE => $q->whereNull('online_sale_invoice_id')->whereIn('payment_mode', ['upi', 'gpay']),
+            SaleInvoice::TYPE_ONLINE => $q->whereNull('online_sale_invoice_id')->whereIn('payment_mode', config('payment.sale_modes_online')),
             SaleInvoice::TYPE_MIX => $q->whereNull('mix_sale_invoice_id')->where('payment_mode', 'mix'),
             default => $q->whereRaw('1 = 0'),
         };
