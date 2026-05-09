@@ -100,6 +100,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('sales', SaleController::class);
         Route::get('sales/{sale}/payment-details', [SaleController::class, 'getPaymentDetails'])->name('sales.paymentDetails');
         Route::post('sales/{sale}/add-payment', [SaleController::class, 'addPayment'])->name('sales.addPayment');
+        Route::patch('sales/{sale}/payments/{salePayment}', [SaleController::class, 'updatePayment'])->name('sales.updatePayment');
         Route::get('sale-invoices/{saleInvoice}/export', [SaleInvoiceController::class, 'export'])->name('sale-invoices.export');
         Route::resource('sale-invoices', SaleInvoiceController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
         Route::resource('expense-categories', \App\Http\Controllers\Admin\ExpenseCategoryController::class);

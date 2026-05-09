@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\StoreSaleRequest;
 use App\Http\Requests\Admin\UpdateSaleRequest;
 use App\Models\Product;
 use App\Models\Sale;
+use App\Models\SalePayment;
 use App\Services\SaleService;
 use App\Services\StockService;
 use Illuminate\Http\JsonResponse;
@@ -222,11 +223,17 @@ class SaleController extends Controller
         ]);
 
         $payments = $sale->salePayments->map(fn ($payment) => [
-            'payment_date' => $payment->payment_date->format('d M Y'),
-            'amount' => number_format($payment->amount, 2),
-            'payment_method' => $payment->getPaymentMethodLabel(),
-            'reference_number' => $payment->reference_number ?? '-',
-            'notes' => $payment->notes ?? '-',
+            'id'                   => $payment->id,
+            'payment_date'         => $payment->payment_date->format('d M Y'),
+            'payment_date_raw'     => $payment->payment_date->format('Y-m-d'),
+            'amount'               => number_format($payment->amount, 2),
+            'amount_raw'           => (float) $payment->amount,
+            'payment_method'       => $payment->getPaymentMethodLabel(),
+            'payment_method_raw'   => $payment->payment_method,
+            'reference_number'     => $payment->reference_number ?? '-',
+            'reference_number_raw' => $payment->reference_number ?? '',
+            'notes'                => $payment->notes ?? '-',
+            'notes_raw'            => $payment->notes ?? '',
         ]);
 
         $totalPaidFromPayments = $sale->getTotalPaidFromPayments();
@@ -279,6 +286,46 @@ class SaleController extends Controller
             'total_paid' => number_format($totalPaid, 2),
             'remaining_amount' => number_format($remaining, 2),
             'payment_status' => ucfirst($sale->payment_status),
+        ]);
+    }
+
+    /**
+     * Update an existing sale payment (all editable fields).
+     */
+    public function updatePayment(Request $request, Sale $sale, SalePayment $salePayment): JsonResponse
+    {
+        abort_if($salePayment->sale_id !== $sale->id, 404);
+
+        $allowedMethods = array_keys(config('payment.sale_payment_methods', []));
+
+        // Cap = sale total - initial amount_paid - sum of OTHER follow-up payments.
+        $otherPaid = (float) $sale->amount_paid
+            + (float) $sale->salePayments()->where('id', '!=', $salePayment->id)->sum('amount');
+        $maxAmount = round((float) $sale->total_amount - $otherPaid, 2);
+
+        $validated = $request->validate([
+            'payment_date'     => ['required', 'date'],
+            'amount'           => ['required', 'numeric', 'min:0.01', 'max:' . max($maxAmount, 0.01)],
+            'payment_method'   => ['required', 'in:' . implode(',', $allowedMethods)],
+            'reference_number' => ['nullable', 'string', 'max:255'],
+            'notes'            => ['nullable', 'string', 'max:1000'],
+        ], [
+            'amount.max' => "Amount cannot exceed remaining payable (₹{$maxAmount}).",
+        ]);
+
+        $salePayment->update([
+            'payment_date'     => $validated['payment_date'],
+            'amount'           => $validated['amount'],
+            'payment_method'   => $validated['payment_method'],
+            'reference_number' => $validated['reference_number'] ?? null,
+            'notes'            => $validated['notes'] ?? null,
+        ]);
+
+        $sale->recalculatePaymentStatus();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment updated successfully.',
         ]);
     }
 }

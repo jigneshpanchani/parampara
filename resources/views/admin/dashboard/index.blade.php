@@ -145,13 +145,13 @@
         <h3 class="text-lg font-bold text-gray-800 mb-4">Recent Sales</h3>
         <div class="space-y-3">
             @forelse($recentSales as $sale)
-                <div class="flex justify-between items-center pb-3 border-b">
+                <a href="{{ route('admin.sales.show', $sale) }}" class="flex justify-between items-center pb-3 border-b hover:bg-gray-50 transition rounded px-2 -mx-2">
                     <div>
-                        <p class="text-sm font-semibold text-gray-700">Sale #{{ $sale->id }}</p>
+                        <p class="text-sm font-semibold text-blue-600 hover:underline">Sale #{{ $sale->id }}</p>
                         <p class="text-xs text-gray-500">{{ $sale->sale_date->format('d M Y') }}</p>
                     </div>
                     <p class="text-sm font-bold text-blue-600">₹{{ number_format($sale->total_amount, 2) }}</p>
-                </div>
+                </a>
             @empty
                 <p class="text-gray-500 text-sm">No recent sales</p>
             @endforelse
@@ -163,13 +163,13 @@
         <h3 class="text-lg font-bold text-gray-800 mb-4">Recent Purchases</h3>
         <div class="space-y-3">
             @forelse($recentPurchases as $purchase)
-                <div class="flex justify-between items-center pb-3 border-b">
+                <a href="{{ route('admin.purchases.show', $purchase) }}" class="flex justify-between items-center pb-3 border-b hover:bg-gray-50 transition rounded px-2 -mx-2">
                     <div>
-                        <p class="text-sm font-semibold text-gray-700">PO #{{ $purchase->id }}</p>
+                        <p class="text-sm font-semibold text-orange-600 hover:underline">PO #{{ $purchase->id }}</p>
                         <p class="text-xs text-gray-500">{{ $purchase->purchase_date->format('d M Y') }}</p>
                     </div>
                     <p class="text-sm font-bold text-orange-600">₹{{ number_format($purchase->total_amount, 2) }}</p>
-                </div>
+                </a>
             @empty
                 <p class="text-gray-500 text-sm">No recent purchases</p>
             @endforelse
@@ -183,7 +183,7 @@
             @forelse($recentExpenses as $expense)
                 <div class="flex justify-between items-center pb-3 border-b">
                     <div>
-                        <p class="text-sm font-semibold text-gray-700">{{ $expense->category }}</p>
+                        <p class="text-sm font-semibold text-gray-700">{{ $expense->expenseCategory?->name ?? '—' }}</p>
                         <p class="text-xs text-gray-500">{{ $expense->expense_date->format('d M Y') }}</p>
                     </div>
                     <p class="text-sm font-bold text-red-600">₹{{ number_format($expense->amount, 2) }}</p>

@@ -53,7 +53,7 @@ class DashboardController extends Controller
         // Recent Data
         $recentSales = Sale::latest()->take(5)->get();
         $recentPurchases = Purchase::latest()->take(5)->get();
-        $recentExpenses = Expense::latest()->take(5)->get();
+        $recentExpenses = Expense::with('expenseCategory')->latest()->take(5)->get();
 
         return view('admin.dashboard.index', compact(
             'totalSales',

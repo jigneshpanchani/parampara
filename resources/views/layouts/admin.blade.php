@@ -95,25 +95,35 @@
                         </span>
                     </a>
 
-                    <!-- Purchase Returns -->
-                    <a href="{{ route('admin.purchase-returns.index') }}" class="block px-6 py-3 hover:bg-gray-800 transition {{ request()->routeIs('admin.purchase-returns.*') ? 'bg-gray-800 border-l-4 border-blue-500' : '' }}">
-                        <span class="flex items-center">
-                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    <!-- Returns (collapsible group: Sales Returns + Purchase Returns) -->
+                    @php
+                        $returnsActive = request()->routeIs('admin.sale-returns.*') || request()->routeIs('admin.purchase-returns.*');
+                    @endphp
+                    <div>
+                        <button type="button" data-collapse-toggle="returnsSubmenu"
+                            class="w-full flex items-center justify-between px-6 py-3 hover:bg-gray-800 transition {{ $returnsActive ? 'bg-gray-800 border-l-4 border-blue-500' : '' }}">
+                            <span class="flex items-center">
+                                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                                ↩️ Returns
+                            </span>
+                            <svg data-collapse-icon class="w-4 h-4 transition-transform {{ $returnsActive ? 'rotate-180' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                             </svg>
-                            ↩️ Purchase Return
-                        </span>
-                    </a>
+                        </button>
 
-                    <!-- Sales Returns -->
-                    <a href="{{ route('admin.sale-returns.index') }}" class="block px-6 py-3 hover:bg-gray-800 transition {{ request()->routeIs('admin.sale-returns.*') ? 'bg-gray-800 border-l-4 border-blue-500' : '' }}">
-                        <span class="flex items-center">
-                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                            </svg>
-                            ↩️ Sales Return
-                        </span>
-                    </a>
+                        <div id="returnsSubmenu" class="bg-gray-950 {{ $returnsActive ? '' : 'hidden' }}">
+                            <a href="{{ route('admin.sale-returns.index') }}"
+                                class="block pl-14 pr-6 py-2 text-sm hover:bg-gray-800 transition {{ request()->routeIs('admin.sale-returns.*') ? 'bg-gray-800 border-l-4 border-blue-500' : '' }}">
+                                Sales Returns
+                            </a>
+                            <a href="{{ route('admin.purchase-returns.index') }}"
+                                class="block pl-14 pr-6 py-2 text-sm hover:bg-gray-800 transition {{ request()->routeIs('admin.purchase-returns.*') ? 'bg-gray-800 border-l-4 border-blue-500' : '' }}">
+                                Purchase Returns
+                            </a>
+                        </div>
+                    </div>
 
                     <!-- Expenses -->
                     <a href="{{ route('admin.expenses.index') }}" class="block px-6 py-3 hover:bg-gray-800 transition {{ request()->routeIs('admin.expenses.*') ? 'bg-gray-800 border-l-4 border-blue-500' : '' }}">
@@ -250,6 +260,19 @@
 
         <!-- Delete Confirmation Modal -->
         @include('components.delete-confirmation-modal')
+
+        <script>
+            // Sidebar collapsible groups (data-collapse-toggle="<targetId>")
+            document.querySelectorAll('[data-collapse-toggle]').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const target = document.getElementById(this.dataset.collapseToggle);
+                    if (!target) return;
+                    target.classList.toggle('hidden');
+                    const icon = this.querySelector('[data-collapse-icon]');
+                    if (icon) icon.classList.toggle('rotate-180');
+                });
+            });
+        </script>
     </body>
 </html>
 

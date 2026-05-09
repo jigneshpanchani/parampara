@@ -324,11 +324,9 @@
                         <label for="paymentMethod" class="block text-xs font-semibold text-gray-700 mb-1">Payment Method *</label>
                         <select id="paymentMethod" name="payment_method" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                             <option value="">Select</option>
-                            <option value="cash">Cash</option>
-                            <option value="cheque">Cheque</option>
-                            <option value="bank_transfer">Bank Transfer</option>
-                            <option value="credit_card">Credit Card</option>
-                            <option value="other">Other</option>
+                            @foreach (config('payment.purchase_payment_methods') as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <div>
@@ -421,10 +419,10 @@ function loadPaymentDetails(purchaseId) {
                         const notesText = payment.notes !== '-' ? ` • ${escapeHtml(payment.notes)}` : '';
                         const notesValue = escapeHtml(payment.notes_raw || '');
                         const refValue = escapeHtml(payment.reference_number_raw || '');
-                        const methodOptions = ['cash','cheque','bank_transfer','credit_card','other'].map(key => {
-                            const labels = {cash:'Cash', cheque:'Cheque', bank_transfer:'Bank Transfer', credit_card:'Credit Card', other:'Other'};
+                        const paymentMethodLabels = @json(config('payment.purchase_payment_methods'));
+                        const methodOptions = Object.entries(paymentMethodLabels).map(([key, label]) => {
                             const sel = key === payment.payment_method_raw ? 'selected' : '';
-                            return `<option value="${key}" ${sel}>${labels[key]}</option>`;
+                            return `<option value="${key}" ${sel}>${label}</option>`;
                         }).join('');
                         paymentDiv.innerHTML = `
                             <div class="payment-view flex justify-between items-center">
