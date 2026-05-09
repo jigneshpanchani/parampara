@@ -114,6 +114,7 @@ Route::middleware('auth')->group(function () {
         Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('reports/sales', [ReportController::class, 'sales'])->name('reports.sales');
         Route::post('reports/sales/export', [ReportController::class, 'exportSales'])->name('reports.sales.export');
+        Route::post('reports/sales/pdf', [ReportController::class, 'exportSalesPdf'])->name('reports.sales.pdf');
         Route::get('reports/purchases', [ReportController::class, 'purchases'])->name('reports.purchases');
         Route::get('reports/purchases/export', [ReportController::class, 'exportPurchases'])->name('reports.purchases.export');
         Route::get('reports/stock', [ReportController::class, 'stock'])->name('reports.stock');

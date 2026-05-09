@@ -309,10 +309,15 @@ class ReportController extends Controller
             $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
 
-            // Set title
-            $monthYear = $startDate ? date('M-y', strtotime($startDate)) : 'All';
-            $sheet->setCellValue('A1', $monthYear);
-            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+            // Header block
+            $companyName = optional(\App\Models\CompanyProfile::first())->company_name ?: 'Parampara';
+            $periodLabel = $startDate && $endDate
+                ? \Carbon\Carbon::parse($startDate)->format('d M Y') . ' to ' . \Carbon\Carbon::parse($endDate)->format('d M Y')
+                : 'All records';
+            $monthYear   = $startDate ? date('M-y', strtotime($startDate)) : 'All';
+
+            $sheet->setCellValue('A1', $companyName . ' — Sales Report');
+            $sheet->setCellValue('A2', 'Period: ' . $periodLabel . '   |   Generated: ' . now()->format('d M Y H:i'));
 
             // Build dynamic headers - Date + Product Codes + Sales/Return/Expense columns
             $headers = ['Date'];
@@ -329,6 +334,27 @@ class ReportController extends Controller
                 $col++;
             }
 
+            // Merge the two title rows across the full report width, then center them
+            // (apply styles to the merged range so the alignment sticks).
+            $lastColLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers));
+            $sheet->mergeCells("A1:{$lastColLetter}1");
+            $sheet->mergeCells("A2:{$lastColLetter}2");
+
+            $title1Style = $sheet->getStyle("A1:{$lastColLetter}1");
+            $title1Style->getFont()->setBold(true)->setSize(14);
+            $title1Style->getAlignment()
+                ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)
+                ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+
+            $title2Style = $sheet->getStyle("A2:{$lastColLetter}2");
+            $title2Style->getFont()->setItalic(true)->setSize(10);
+            $title2Style->getAlignment()
+                ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)
+                ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+
+            $sheet->getRowDimension(1)->setRowHeight(22);
+            $sheet->getRowDimension(2)->setRowHeight(18);
+
             // Calculate column positions for sales/expense data
             $productCount = $products->count();
             $onlineCol = 2 + $productCount;
@@ -341,6 +367,16 @@ class ReportController extends Controller
             $expenseDetailsCol = $expenseCol + 1;
             $finalTotalCol = $expenseDetailsCol + 1;
 
+            // Rotate header text 90° for product code columns + Online / Cash / Return / Return Details.
+            // Date / Total / Notes / Expense / Exp.Detail / Final Total stay horizontal.
+            for ($c = 2; $c <= $returnDetailsCol; $c++) {
+                $alignment = $sheet->getStyleByColumnAndRow($c, 3)->getAlignment();
+                $alignment->setTextRotation(90);
+                $alignment->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_BOTTOM);
+                $alignment->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            }
+            $sheet->getRowDimension(3)->setRowHeight(85);
+
             // Group sales by date
             $salesByDate = $sales->groupBy(function ($sale) {
                 return $sale->sale_date->format('d-m-Y');
@@ -352,10 +388,11 @@ class ReportController extends Controller
             });
 
             // Iterate over the union of dates so days that only had follow-up payments still appear.
+            // Ascending: 1 Apr, 2 Apr, 3 Apr ...
             $allDates = $salesByDate->keys()
                 ->concat($paymentsByDate->keys())
                 ->unique()
-                ->sortByDesc(function ($d) {
+                ->sortBy(function ($d) {
                     return \DateTime::createFromFormat('d-m-Y', $d)->format('Y-m-d');
                 })
                 ->values();
@@ -492,14 +529,14 @@ class ReportController extends Controller
                 // Write expense (dynamic column)
                 $sheet->setCellValueByColumnAndRow($expenseCol, $row, $dateExpenseAmount > 0 ? $dateExpenseAmount : '');
 
-                // Write expense details (dynamic column)
-                $expenseDetails = '';
+                // Write expense details (dynamic column) — one entry per line inside the cell.
+                $expenseDetailsParts = [];
                 foreach ($dateExpenses as $expense) {
                     $categoryName = $expense->expenseCategory ? $expense->expenseCategory->name : 'Other';
                     $label = $expense->notes ? $categoryName . ' - ' . $expense->notes : $categoryName;
-                    $expenseDetails .= number_format($expense->amount, 0) . '/- ' . $label . '; ';
+                    $expenseDetailsParts[] = number_format($expense->amount, 0) . '/- ' . $label;
                 }
-                $sheet->setCellValueByColumnAndRow($expenseDetailsCol, $row, trim($expenseDetails));
+                $sheet->setCellValueByColumnAndRow($expenseDetailsCol, $row, implode("\n", $expenseDetailsParts));
 
                 // Write final total (dynamic column) - Sales - Returns - Expenses
                 $finalTotal = $total - $dateExpenseAmount;
@@ -539,15 +576,36 @@ class ReportController extends Controller
             $sheet->setCellValueByColumnAndRow($expenseCol, $row, $totalExpense);
             $sheet->getStyleByColumnAndRow($expenseCol, $row)->getFont()->setBold(true);
 
-            // Auto-size columns dynamically based on total column count.
-            // Notes column gets a fixed width since wrapped multi-line text breaks autoSize.
-            $totalColumns = $finalTotalCol;
-            for ($i = 1; $i <= $totalColumns; $i++) {
-                if ($i === $notesCol) {
-                    $sheet->getColumnDimensionByColumn($i)->setWidth(55);
-                } else {
-                    $sheet->getColumnDimensionByColumn($i)->setAutoSize(true);
-                }
+            // Explicit column widths so the sheet doesn't end up either way too wide
+            // (autoSize on text columns) or way too narrow (autoSize on rotated headers).
+            //   1            : Date           — narrow text
+            //   2..onlineCol-1 : Product cols  — narrow numeric (1-3 digits)
+            //   onlineCol..totalCol            : Money / return / total — medium
+            //   notesCol                       : Notes — wide, wrapped
+            //   expenseCol..finalTotalCol      : Expense / Exp.Detail / Net
+            for ($i = 1; $i <= $finalTotalCol; $i++) {
+                $width = match (true) {
+                    $i === 1                                  => 11,        // Date
+                    $i >= 2 && $i < $onlineCol                => 5,         // Product cols (vertical headers)
+                    $i === $onlineCol || $i === $cashCol      => 9,         // Online / Cash
+                    $i === $returnCol                         => 8,         // Return
+                    $i === $returnDetailsCol                  => 18,        // Return Details (text)
+                    $i === $totalCol                          => 9,         // Total (sales-net-of-returns)
+                    $i === $notesCol                          => 38,        // Notes (long text, wrapped)
+                    $i === $expenseCol                        => 9,         // Expense
+                    $i === $expenseDetailsCol                 => 28,        // Exp.Detail
+                    $i === $finalTotalCol                     => 10,        // Final Total / Net
+                    default                                   => 8,
+                };
+                $sheet->getColumnDimensionByColumn($i)->setWidth($width);
+            }
+            // Wrap text on the long-form columns so multi-line entries stay inside the cell.
+            foreach ([$returnDetailsCol, $notesCol, $expenseDetailsCol] as $wrapCol) {
+                $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($wrapCol);
+                $sheet->getStyle("{$colLetter}4:{$colLetter}{$row}")
+                    ->getAlignment()
+                    ->setWrapText(true)
+                    ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP);
             }
 
             // Add product-wise payment mode breakdown sections
@@ -671,6 +729,212 @@ class ReportController extends Controller
             $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
             $writer->save('php://output');
         }, $fileName);
+    }
+
+    /**
+     * Export sales report to PDF (2-page layout: daily breakdown + product-wise breakdown).
+     */
+    public function exportSalesPdf(Request $request)
+    {
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        $paymentMode = $request->input('payment_mode');
+
+        $query = Sale::with('items.product', 'returns');
+        if ($startDate && $endDate) {
+            $query->whereBetween('sale_date', [$startDate, $endDate]);
+        }
+        if ($paymentMode) {
+            $query->where('payment_mode', $paymentMode);
+        }
+        $sales = $query->orderBy('sale_date', 'desc')->get();
+
+        $followUpPaymentsQuery = SalePayment::with('sale');
+        if ($startDate && $endDate) {
+            $followUpPaymentsQuery->whereBetween('payment_date', [$startDate, $endDate]);
+        }
+        if ($paymentMode) {
+            $followUpPaymentsQuery->whereHas('sale', fn ($q) => $q->where('payment_mode', $paymentMode));
+        }
+        $followUpPayments = $followUpPaymentsQuery->get();
+
+        $products = Product::orderBy('id')->get();
+
+        $aggregated = $this->aggregateSalesForReport($sales, $followUpPayments, $products, $startDate, $endDate);
+
+        $companyName = optional(\App\Models\CompanyProfile::first())->company_name ?: 'Parampara';
+        $periodLabel = $startDate && $endDate
+            ? \Carbon\Carbon::parse($startDate)->format('d M Y') . ' to ' . \Carbon\Carbon::parse($endDate)->format('d M Y')
+            : 'All records';
+        $monthLabel = $startDate ? \Carbon\Carbon::parse($startDate)->format('M Y') : 'All';
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.sales-report', [
+            'products'            => $products,
+            'dailyRows'           => $aggregated['dailyRows'],
+            'totals'              => $aggregated['totals'],
+            'productPaymentQty'   => $aggregated['productPaymentQty'],
+            'productPaymentAmount' => $aggregated['productPaymentAmount'],
+            'companyName'         => $companyName,
+            'periodLabel'         => $periodLabel,
+            'monthLabel'          => $monthLabel,
+            'generatedAt'         => now()->format('d M Y H:i'),
+        ])->setPaper('a4', 'landscape');
+
+        $fileName = 'Sales_Report_' . ($startDate ? date('M-Y', strtotime($startDate)) : 'All') . '.pdf';
+
+        return $pdf->download($fileName);
+    }
+
+    /**
+     * Aggregate sales + follow-up payments for the daily report and product-wise breakdown.
+     * Mirrors the math used by exportSales so the PDF and Excel agree.
+     */
+    protected function aggregateSalesForReport($sales, $followUpPayments, $products, $startDate, $endDate): array
+    {
+        $onlineModes = config('payment.sale_modes_online');
+
+        $salesByDate = $sales->groupBy(fn ($s) => $s->sale_date->format('Y-m-d'));
+        $paymentsByDate = $followUpPayments->groupBy(fn ($p) => $p->payment_date->format('Y-m-d'));
+
+        // Ascending: 1 Apr, 2 Apr, 3 Apr ...
+        $allDates = $salesByDate->keys()
+            ->concat($paymentsByDate->keys())
+            ->unique()
+            ->sort()
+            ->values();
+
+        $productCodes  = $products->pluck('product_code')->all();
+        $productTotals = array_fill_keys($productCodes, 0);
+
+        $totalCash = 0; $totalOnline = 0; $totalExpense = 0; $totalReturns = 0;
+        $dailyRows = [];
+
+        foreach ($allDates as $isoDate) {
+            $dateSales    = $salesByDate->get($isoDate, collect());
+            $datePayments = $paymentsByDate->get($isoDate, collect());
+
+            $productQtys = array_fill_keys($productCodes, 0);
+            $cashAmount  = 0; $onlineAmount = 0; $returnAmount = 0; $expenseAmount = 0;
+
+            foreach ($dateSales as $sale) {
+                if ($sale->payment_mode === 'cash') {
+                    $cashAmount += (float) $sale->amount_paid;
+                } elseif (in_array($sale->payment_mode, $onlineModes, true)) {
+                    $onlineAmount += (float) $sale->amount_paid;
+                } elseif ($sale->payment_mode === 'mix') {
+                    $cashAmount   += (float) ($sale->cash_amount ?? 0);
+                    $onlineAmount += (float) ($sale->online_amount ?? 0);
+                }
+
+                foreach ($sale->items as $item) {
+                    $code = $item->product?->product_code;
+                    if ($code && array_key_exists($code, $productQtys)) {
+                        $productQtys[$code] += $item->quantity;
+                    }
+                }
+
+                foreach ($sale->returns as $return) {
+                    $returnAmount += (float) $return->total_return_amount;
+                }
+            }
+
+            foreach ($datePayments as $payment) {
+                if ($payment->payment_method === 'cash') {
+                    $cashAmount += (float) $payment->amount;
+                } else {
+                    $onlineAmount += (float) $payment->amount;
+                }
+            }
+
+            $dateExpenses = Expense::with('expenseCategory')->whereDate('expense_date', $isoDate)->get();
+            foreach ($dateExpenses as $expense) {
+                $expenseAmount += (float) $expense->amount;
+            }
+
+            $returnDetails = [];
+            foreach ($dateSales as $sale) {
+                foreach ($sale->returns as $return) {
+                    $returnDetails[] = ($return->product?->product_code ?? 'N/A') . ': ' . $return->quantity;
+                }
+            }
+
+            $expenseDetails = [];
+            foreach ($dateExpenses as $expense) {
+                $catName = $expense->expenseCategory ? $expense->expenseCategory->name : 'Other';
+                $label = $expense->notes ? $catName . ' - ' . $expense->notes : $catName;
+                $expenseDetails[] = number_format((float) $expense->amount, 0) . '/- ' . $label;
+            }
+
+            $notes = [];
+            foreach ($datePayments as $payment) {
+                $sale = $payment->sale;
+                $billDate = $sale && $sale->sale_date ? $sale->sale_date->format('d M Y') : '—';
+                $seller   = $sale && $sale->seller_name ? $sale->seller_name : 'Unknown';
+                $methodLabel = config("payment.sale_payment_methods.{$payment->payment_method}", strtoupper((string) $payment->payment_method));
+                $line = '₹' . number_format((float) $payment->amount, 0) . ' ' . $methodLabel
+                      . ' for bill of ' . $billDate . ' (' . $seller . ')';
+                if (!empty($payment->notes)) {
+                    $line .= ' — ' . $payment->notes;
+                }
+                $notes[] = $line;
+            }
+
+            foreach ($productCodes as $code) {
+                $productTotals[$code] += $productQtys[$code];
+            }
+            $totalCash   += $cashAmount;
+            $totalOnline += $onlineAmount;
+            $totalExpense += $expenseAmount;
+            $totalReturns += $returnAmount;
+
+            $rowTotal = ($cashAmount + $onlineAmount) - $returnAmount;
+
+            $dailyRows[] = [
+                'date'            => \Carbon\Carbon::parse($isoDate)->format('d-m-Y'),
+                'product_qtys'    => $productQtys,
+                'online'          => $onlineAmount,
+                'cash'            => $cashAmount,
+                'return'          => $returnAmount,
+                'return_details'  => implode('; ', $returnDetails),
+                'total'           => $rowTotal,
+                'notes'           => implode("\n", $notes),
+                'expense'         => $expenseAmount,
+                'expense_details' => implode("\n", $expenseDetails),
+                'final_total'     => $rowTotal - $expenseAmount,
+            ];
+        }
+
+        // Product-wise quantity / amount by payment mode (uses ALL sales in range, not only days with sales).
+        $productPaymentQty = [];
+        $productPaymentAmount = [];
+        foreach ($products as $product) {
+            $productPaymentQty[$product->product_code]    = ['upi' => 0, 'gpay' => 0, 'cash' => 0, 'mix' => 0];
+            $productPaymentAmount[$product->product_code] = ['upi' => 0, 'gpay' => 0, 'cash' => 0, 'mix' => 0];
+        }
+        foreach ($sales as $sale) {
+            foreach ($sale->items as $item) {
+                $code = $item->product?->product_code;
+                $mode = $sale->payment_mode;
+                if ($code && isset($productPaymentQty[$code][$mode])) {
+                    $productPaymentQty[$code][$mode]    += $item->quantity;
+                    $productPaymentAmount[$code][$mode] += $item->total_price;
+                }
+            }
+        }
+
+        return [
+            'dailyRows'            => $dailyRows,
+            'totals'               => [
+                'cash'        => $totalCash,
+                'online'      => $totalOnline,
+                'returns'     => $totalReturns,
+                'expense'     => $totalExpense,
+                'product'     => $productTotals,
+                'grand_total' => ($totalCash + $totalOnline) - $totalReturns - $totalExpense,
+            ],
+            'productPaymentQty'    => $productPaymentQty,
+            'productPaymentAmount' => $productPaymentAmount,
+        ];
     }
 
     /**

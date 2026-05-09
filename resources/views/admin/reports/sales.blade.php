@@ -41,8 +41,29 @@
                 @csrf
                 <input type="hidden" name="start_date" value="{{ $startDate }}">
                 <input type="hidden" name="end_date" value="{{ $endDate }}">
-                <button type="submit" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded flex items-center gap-2">
-                    📥 Export to Excel
+                <button type="submit" title="Export to XLS"
+                    class="bg-green-500 hover:bg-green-600 text-white p-2 rounded flex items-center justify-center w-11 h-11 transition">
+                    {{-- XLS file icon --}}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 3 14 8 19 8"/>
+                        <text x="12" y="17" text-anchor="middle" font-size="5.5" font-family="Arial, sans-serif" font-weight="bold" fill="currentColor" stroke="none">XLS</text>
+                    </svg>
+                </button>
+            </form>
+            <form action="{{ route('admin.reports.sales.pdf') }}" method="POST">
+                @csrf
+                <input type="hidden" name="start_date" value="{{ $startDate }}">
+                <input type="hidden" name="end_date" value="{{ $endDate }}">
+                <input type="hidden" name="payment_mode" value="{{ $paymentMode }}">
+                <button type="submit" title="Export to PDF"
+                    class="bg-red-500 hover:bg-red-600 text-white p-2 rounded flex items-center justify-center w-11 h-11 transition">
+                    {{-- PDF file icon --}}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 3 14 8 19 8"/>
+                        <text x="12" y="17" text-anchor="middle" font-size="5.5" font-family="Arial, sans-serif" font-weight="bold" fill="currentColor" stroke="none">PDF</text>
+                    </svg>
                 </button>
             </form>
         @endif
