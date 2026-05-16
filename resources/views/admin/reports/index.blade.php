@@ -93,6 +93,13 @@
         <p class="text-gray-600 text-sm">Monitor product inventory and pricing</p>
     </a>
 
+    <!-- Counter Report -->
+    <a href="{{ route('admin.reports.counter') }}" class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
+        <div class="text-4xl mb-4">🧾</div>
+        <h3 class="text-xl font-bold text-gray-800 mb-2">Counter Report</h3>
+        <p class="text-gray-600 text-sm">Date-wise Cash, Online, Pay Later, Return &amp; Expense summary</p>
+    </a>
+
     <!-- Profit Analysis -->
     <div class="bg-white rounded-lg shadow p-6">
         <div class="text-4xl mb-4">📊</div>

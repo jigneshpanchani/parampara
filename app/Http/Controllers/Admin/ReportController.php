@@ -938,6 +938,306 @@ class ReportController extends Controller
     }
 
     /**
+     * Display Counter report: date-wise Cash / Online / Pay Later / Return / Expense / Net.
+     */
+    public function counter(Request $request)
+    {
+        $startDate = $request->input('start_date');
+        $endDate   = $request->input('end_date');
+        $productIds = $this->normalizeProductIds($request->input('product_ids'));
+
+        $aggregated = $this->aggregateCounterReport($startDate, $endDate, $productIds);
+
+        $allProducts = Product::orderByName()->get(['id', 'product_name', 'product_code']);
+
+        return view('admin.reports.counter', [
+            'rows'              => $aggregated['rows'],
+            'totals'            => $aggregated['totals'],
+            'startDate'         => $startDate,
+            'endDate'           => $endDate,
+            'allProducts'       => $allProducts,
+            'selectedProductIds' => $productIds,
+        ]);
+    }
+
+    /**
+     * Normalize product_ids request value into a clean int[] or null (= all).
+     */
+    protected function normalizeProductIds($raw): ?array
+    {
+        if ($raw === null || $raw === '' || $raw === []) {
+            return null;
+        }
+        $ids = is_array($raw) ? $raw : explode(',', (string) $raw);
+        $ids = array_values(array_filter(array_map('intval', $ids), fn ($i) => $i > 0));
+        return empty($ids) ? null : $ids;
+    }
+
+    /**
+     * Build the daily counter rows + summary totals.
+     *
+     * Cash / Online = money actually received that day:
+     *   at-sale paid portion (by mode) + follow-up sale_payments (by method).
+     * Pay Later     = pending portion of sales recorded that day (NOT yet received).
+     * Return        = sale returns recorded that day (uses return_date).
+     * Expense       = expenses recorded that day.
+     */
+    protected function aggregateCounterReport(?string $startDate, ?string $endDate, ?array $productIds = null): array
+    {
+        $onlineModes = config('payment.sale_modes_online');
+
+        $salesQuery = Sale::with('items');
+        $paymentsQuery = SalePayment::query();
+        $returnsQuery = \App\Models\SaleReturn::query();
+        $expensesQuery = Expense::query();
+
+        if ($startDate) {
+            $salesQuery->whereDate('sale_date', '>=', $startDate);
+            $paymentsQuery->whereDate('payment_date', '>=', $startDate);
+            $returnsQuery->whereDate('return_date', '>=', $startDate);
+            $expensesQuery->whereDate('expense_date', '>=', $startDate);
+        }
+        if ($endDate) {
+            $salesQuery->whereDate('sale_date', '<=', $endDate);
+            $paymentsQuery->whereDate('payment_date', '<=', $endDate);
+            $returnsQuery->whereDate('return_date', '<=', $endDate);
+            $expensesQuery->whereDate('expense_date', '<=', $endDate);
+        }
+
+        // Product filter: include any sale/return that involves at least one of the selected products.
+        // Expenses are intentionally NOT product-filtered (they are shop overhead, not per-product).
+        if (!empty($productIds)) {
+            $salesQuery->whereHas('items', fn ($q) => $q->whereIn('product_id', $productIds));
+            $paymentsQuery->whereHas('sale.items', fn ($q) => $q->whereIn('product_id', $productIds));
+            $returnsQuery->whereIn('product_id', $productIds);
+        }
+
+        $sales            = $salesQuery->get();
+        $followUpPayments = $paymentsQuery->get();
+        $saleReturns      = $returnsQuery->get();
+        $expenses         = $expensesQuery->get();
+
+        $salesByDate    = $sales->groupBy(fn ($s) => $s->sale_date->format('Y-m-d'));
+        $paymentsByDate = $followUpPayments->groupBy(fn ($p) => $p->payment_date->format('Y-m-d'));
+        $returnsByDate  = $saleReturns->groupBy(fn ($r) => $r->return_date->format('Y-m-d'));
+        $expensesByDate = $expenses->groupBy(fn ($e) => $e->expense_date->format('Y-m-d'));
+
+        $allDates = $salesByDate->keys()
+            ->concat($paymentsByDate->keys())
+            ->concat($returnsByDate->keys())
+            ->concat($expensesByDate->keys())
+            ->unique()
+            ->sort()
+            ->values();
+
+        $rows = [];
+        $totalCash = 0; $totalOnline = 0; $totalPayLater = 0;
+        $totalReturn = 0; $totalExpense = 0; $totalSalesAmount = 0;
+
+        foreach ($allDates as $isoDate) {
+            $dateSales    = $salesByDate->get($isoDate, collect());
+            $datePayments = $paymentsByDate->get($isoDate, collect());
+            $dateReturns  = $returnsByDate->get($isoDate, collect());
+            $dateExpenses = $expensesByDate->get($isoDate, collect());
+
+            $cash = 0.0; $online = 0.0; $payLater = 0.0; $salesAmount = 0.0;
+
+            foreach ($dateSales as $sale) {
+                $salesAmount += (float) $sale->total_amount;
+                $payLater    += (float) $sale->pending_amount;
+
+                if ($sale->payment_mode === 'cash') {
+                    $cash += (float) $sale->amount_paid;
+                } elseif (in_array($sale->payment_mode, $onlineModes, true)) {
+                    $online += (float) $sale->amount_paid;
+                } elseif ($sale->payment_mode === 'mix') {
+                    $cash   += (float) ($sale->cash_amount ?? 0);
+                    $online += (float) ($sale->online_amount ?? 0);
+                }
+            }
+
+            foreach ($datePayments as $payment) {
+                if ($payment->payment_method === 'cash') {
+                    $cash += (float) $payment->amount;
+                } else {
+                    $online += (float) $payment->amount;
+                }
+            }
+
+            $returnAmount  = (float) $dateReturns->sum('total_return_amount');
+            $expenseAmount = (float) $dateExpenses->sum('amount');
+            $net           = ($cash + $online) - $returnAmount - $expenseAmount;
+
+            $rows[] = [
+                'date'         => \Carbon\Carbon::parse($isoDate)->format('d-m-Y'),
+                'date_iso'     => $isoDate,
+                'cash'         => $cash,
+                'online'       => $online,
+                'pay_later'    => $payLater,
+                'sales_amount' => $salesAmount,
+                'return'       => $returnAmount,
+                'expense'      => $expenseAmount,
+                'net'          => $net,
+            ];
+
+            $totalCash        += $cash;
+            $totalOnline      += $online;
+            $totalPayLater    += $payLater;
+            $totalReturn      += $returnAmount;
+            $totalExpense     += $expenseAmount;
+            $totalSalesAmount += $salesAmount;
+        }
+
+        return [
+            'rows'   => $rows,
+            'totals' => [
+                'cash'         => $totalCash,
+                'online'       => $totalOnline,
+                'pay_later'    => $totalPayLater,
+                'sales_amount' => $totalSalesAmount,
+                'return'       => $totalReturn,
+                'expense'      => $totalExpense,
+                'net'          => ($totalCash + $totalOnline) - $totalReturn - $totalExpense,
+            ],
+        ];
+    }
+
+    /**
+     * Export Counter report to Excel (XLSX).
+     */
+    public function exportCounter(Request $request)
+    {
+        $startDate  = $request->input('start_date');
+        $endDate    = $request->input('end_date');
+        $productIds = $this->normalizeProductIds($request->input('product_ids'));
+
+        $aggregated = $this->aggregateCounterReport($startDate, $endDate, $productIds);
+        $rows       = $aggregated['rows'];
+        $totals     = $aggregated['totals'];
+
+        $companyName = optional(\App\Models\CompanyProfile::first())->company_name ?: 'Parampara';
+        $periodLabel = $startDate && $endDate
+            ? \Carbon\Carbon::parse($startDate)->format('d M Y') . ' to ' . \Carbon\Carbon::parse($endDate)->format('d M Y')
+            : 'All records';
+
+        $productLabel = !empty($productIds)
+            ? Product::whereIn('id', $productIds)->orderByName()->pluck('product_name')->implode(', ')
+            : 'All products';
+
+        $fileName = 'Counter_Report_' . ($startDate ? date('M-Y', strtotime($startDate)) : 'All') . '.xlsx';
+
+        return response()->streamDownload(function () use ($rows, $totals, $companyName, $periodLabel, $productLabel) {
+            $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+
+            $headers = ['Date', 'Cash', 'Online', 'Pay Later', 'Total Sales', 'Return', 'Expense', 'Net Total'];
+            $lastColLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers));
+
+            $sheet->setCellValue('A1', $companyName . ' — Counter Report');
+            $sheet->mergeCells("A1:{$lastColLetter}1");
+            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+            $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+            $sheet->setCellValue('A2', 'Period: ' . $periodLabel . '   |   Generated: ' . now()->format('d M Y H:i'));
+            $sheet->mergeCells("A2:{$lastColLetter}2");
+            $sheet->getStyle('A2')->getFont()->setItalic(true);
+            $sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+            $sheet->setCellValue('A3', 'Products: ' . $productLabel);
+            $sheet->mergeCells("A3:{$lastColLetter}3");
+            $sheet->getStyle('A3')->getFont()->setSize(10);
+            $sheet->getStyle('A3')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+            $headerRow = 5;
+            $col = 1;
+            foreach ($headers as $header) {
+                $sheet->setCellValueByColumnAndRow($col, $headerRow, $header);
+                $sheet->getStyleByColumnAndRow($col, $headerRow)->getFont()->setBold(true);
+                $sheet->getStyleByColumnAndRow($col, $headerRow)->getFill()
+                    ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                    ->getStartColor()->setRGB('E5E7EB');
+                $col++;
+            }
+
+            $row = $headerRow + 1;
+            if (empty($rows)) {
+                $sheet->setCellValueByColumnAndRow(1, $row, 'No data for the selected period.');
+                $sheet->mergeCells("A{$row}:{$lastColLetter}{$row}");
+            } else {
+                foreach ($rows as $r) {
+                    $sheet->setCellValueByColumnAndRow(1, $row, $r['date']);
+                    $sheet->setCellValueByColumnAndRow(2, $row, (float) $r['cash']);
+                    $sheet->setCellValueByColumnAndRow(3, $row, (float) $r['online']);
+                    $sheet->setCellValueByColumnAndRow(4, $row, (float) $r['pay_later']);
+                    $sheet->setCellValueByColumnAndRow(5, $row, (float) $r['sales_amount']);
+                    $sheet->setCellValueByColumnAndRow(6, $row, (float) $r['return']);
+                    $sheet->setCellValueByColumnAndRow(7, $row, (float) $r['expense']);
+                    $sheet->setCellValueByColumnAndRow(8, $row, (float) $r['net']);
+                    $row++;
+                }
+
+                $sheet->setCellValueByColumnAndRow(1, $row, 'TOTAL');
+                $sheet->setCellValueByColumnAndRow(2, $row, (float) $totals['cash']);
+                $sheet->setCellValueByColumnAndRow(3, $row, (float) $totals['online']);
+                $sheet->setCellValueByColumnAndRow(4, $row, (float) $totals['pay_later']);
+                $sheet->setCellValueByColumnAndRow(5, $row, (float) $totals['sales_amount']);
+                $sheet->setCellValueByColumnAndRow(6, $row, (float) $totals['return']);
+                $sheet->setCellValueByColumnAndRow(7, $row, (float) $totals['expense']);
+                $sheet->setCellValueByColumnAndRow(8, $row, (float) $totals['net']);
+                $sheet->getStyle("A{$row}:{$lastColLetter}{$row}")->getFont()->setBold(true);
+                $sheet->getStyle("A{$row}:{$lastColLetter}{$row}")->getFill()
+                    ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                    ->getStartColor()->setRGB('F3F4F6');
+            }
+
+            $widths = [12, 12, 12, 12, 14, 12, 12, 14];
+            foreach ($widths as $i => $w) {
+                $sheet->getColumnDimensionByColumn($i + 1)->setWidth($w);
+            }
+
+            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, $fileName, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    /**
+     * Export Counter report to PDF.
+     */
+    public function exportCounterPdf(Request $request)
+    {
+        $startDate  = $request->input('start_date');
+        $endDate    = $request->input('end_date');
+        $productIds = $this->normalizeProductIds($request->input('product_ids'));
+
+        $aggregated = $this->aggregateCounterReport($startDate, $endDate, $productIds);
+
+        $companyName = optional(\App\Models\CompanyProfile::first())->company_name ?: 'Parampara';
+        $periodLabel = $startDate && $endDate
+            ? \Carbon\Carbon::parse($startDate)->format('d M Y') . ' to ' . \Carbon\Carbon::parse($endDate)->format('d M Y')
+            : 'All records';
+        $productLabel = !empty($productIds)
+            ? Product::whereIn('id', $productIds)->orderByName()->pluck('product_name')->implode(', ')
+            : 'All products';
+        $monthLabel = $startDate ? \Carbon\Carbon::parse($startDate)->format('M Y') : 'All';
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.counter-report', [
+            'rows'         => $aggregated['rows'],
+            'totals'       => $aggregated['totals'],
+            'companyName'  => $companyName,
+            'periodLabel'  => $periodLabel,
+            'productLabel' => $productLabel,
+            'monthLabel'   => $monthLabel,
+            'generatedAt'  => now()->format('d M Y H:i'),
+        ])->setPaper('a4', 'portrait');
+
+        $fileName = 'Counter_Report_' . ($startDate ? date('M-Y', strtotime($startDate)) : 'All') . '.pdf';
+
+        return $pdf->download($fileName);
+    }
+
+    /**
      * Display stock report
      */
     public function stock()
