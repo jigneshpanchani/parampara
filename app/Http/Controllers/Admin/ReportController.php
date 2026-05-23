@@ -1243,6 +1243,215 @@ class ReportController extends Controller
     }
 
     /**
+     * Display "Pay Later Customers" report:
+     * every sale that was recorded with an unpaid balance, regardless of whether the
+     * customer has since cleared it. Filtered by sale_date so a month-end view shows
+     * everyone who took something on credit that month.
+     */
+    public function payLater(Request $request)
+    {
+        $startDate = $request->input('start_date');
+        $endDate   = $request->input('end_date');
+        $status    = $request->input('status'); // '', 'cleared', 'outstanding'
+
+        $rows = $this->getPayLaterRows($startDate, $endDate, $status);
+        $totals = $this->summarizePayLaterRows($rows);
+
+        return view('admin.reports.pay-later', [
+            'rows'      => $rows,
+            'totals'    => $totals,
+            'startDate' => $startDate,
+            'endDate'   => $endDate,
+            'status'    => $status,
+        ]);
+    }
+
+    /**
+     * Fetch and shape pay-later sales for both the screen view and the exporters.
+     */
+    protected function getPayLaterRows(?string $startDate, ?string $endDate, ?string $status)
+    {
+        $query = Sale::payLater()->with('salePayments')->orderBy('sale_date', 'desc');
+
+        if ($startDate) {
+            $query->whereDate('sale_date', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->whereDate('sale_date', '<=', $endDate);
+        }
+        if ($status === 'cleared') {
+            $query->where('pending_amount', '<=', 0.01);
+        } elseif ($status === 'outstanding') {
+            $query->where('pending_amount', '>', 0.01);
+        }
+
+        return $query->get()->map(function (Sale $sale) {
+            $originalPayLater = max(0.0, (float) $sale->total_amount - (float) $sale->amount_paid);
+            $currentPending   = (float) $sale->pending_amount;
+            $isCleared        = $currentPending <= 0.01;
+
+            $clearedOn = null;
+            if ($isCleared && $sale->salePayments->isNotEmpty()) {
+                $clearedOn = $sale->salePayments->max('payment_date');
+            }
+
+            return [
+                'id'                  => $sale->id,
+                'sale_date'           => $sale->sale_date,
+                'seller_name'         => $sale->seller_name ?: '—',
+                'seller_contact'      => $sale->seller_contact_number ?: '—',
+                'total_amount'        => (float) $sale->total_amount,
+                'paid_at_sale'        => (float) $sale->amount_paid,
+                'original_pay_later'  => $originalPayLater,
+                'current_pending'     => $currentPending,
+                'status'              => $isCleared ? 'cleared' : 'outstanding',
+                'cleared_on'          => $clearedOn,
+                'follow_up_count'     => $sale->salePayments->count(),
+            ];
+        });
+    }
+
+    /**
+     * Aggregate totals for the summary cards.
+     */
+    protected function summarizePayLaterRows($rows): array
+    {
+        return [
+            'sales_count'        => $rows->count(),
+            'total_sales'        => (float) $rows->sum('total_amount'),
+            'original_pay_later' => (float) $rows->sum('original_pay_later'),
+            'cleared_count'      => $rows->where('status', 'cleared')->count(),
+            'outstanding_count'  => $rows->where('status', 'outstanding')->count(),
+            'outstanding_amount' => (float) $rows->sum('current_pending'),
+        ];
+    }
+
+    /**
+     * Export Pay Later Customers to Excel.
+     */
+    public function exportPayLater(Request $request)
+    {
+        $startDate = $request->input('start_date');
+        $endDate   = $request->input('end_date');
+        $status    = $request->input('status');
+
+        $rows   = $this->getPayLaterRows($startDate, $endDate, $status);
+        $totals = $this->summarizePayLaterRows($rows);
+
+        $companyName = optional(\App\Models\CompanyProfile::first())->company_name ?: 'Parampara';
+        $periodLabel = $startDate && $endDate
+            ? \Carbon\Carbon::parse($startDate)->format('d M Y') . ' to ' . \Carbon\Carbon::parse($endDate)->format('d M Y')
+            : 'All records';
+        $statusLabel = $status === 'cleared' ? 'Cleared only' : ($status === 'outstanding' ? 'Outstanding only' : 'All');
+
+        $fileName = 'Pay_Later_Customers_' . ($startDate ? date('M-Y', strtotime($startDate)) : 'All') . '.xlsx';
+
+        return response()->streamDownload(function () use ($rows, $totals, $companyName, $periodLabel, $statusLabel) {
+            $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+
+            $headers = ['Sale Date', 'Seller', 'Contact', 'Total', 'Paid At Sale', 'Original Pay Later', 'Current Pending', 'Status', 'Cleared On'];
+            $lastColLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers));
+
+            $sheet->setCellValue('A1', $companyName . ' — Pay Later Customers');
+            $sheet->mergeCells("A1:{$lastColLetter}1");
+            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+            $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+            $sheet->setCellValue('A2', 'Period: ' . $periodLabel . '   |   Status: ' . $statusLabel . '   |   Generated: ' . now()->format('d M Y H:i'));
+            $sheet->mergeCells("A2:{$lastColLetter}2");
+            $sheet->getStyle('A2')->getFont()->setItalic(true);
+            $sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+            $headerRow = 4;
+            $col = 1;
+            foreach ($headers as $h) {
+                $sheet->setCellValueByColumnAndRow($col, $headerRow, $h);
+                $sheet->getStyleByColumnAndRow($col, $headerRow)->getFont()->setBold(true);
+                $sheet->getStyleByColumnAndRow($col, $headerRow)->getFill()
+                    ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                    ->getStartColor()->setRGB('E5E7EB');
+                $col++;
+            }
+
+            $row = $headerRow + 1;
+            if ($rows->isEmpty()) {
+                $sheet->setCellValueByColumnAndRow(1, $row, 'No pay-later customers in the selected period.');
+                $sheet->mergeCells("A{$row}:{$lastColLetter}{$row}");
+            } else {
+                foreach ($rows as $r) {
+                    $sheet->setCellValueByColumnAndRow(1, $row, $r['sale_date']->format('d M Y'));
+                    $sheet->setCellValueByColumnAndRow(2, $row, $r['seller_name']);
+                    $sheet->setCellValueByColumnAndRow(3, $row, $r['seller_contact']);
+                    $sheet->setCellValueByColumnAndRow(4, $row, $r['total_amount']);
+                    $sheet->setCellValueByColumnAndRow(5, $row, $r['paid_at_sale']);
+                    $sheet->setCellValueByColumnAndRow(6, $row, $r['original_pay_later']);
+                    $sheet->setCellValueByColumnAndRow(7, $row, $r['current_pending']);
+                    $sheet->setCellValueByColumnAndRow(8, $row, ucfirst($r['status']));
+                    $sheet->setCellValueByColumnAndRow(9, $row, $r['cleared_on'] ? $r['cleared_on']->format('d M Y') : '—');
+                    $row++;
+                }
+
+                // Summary row
+                $row++;
+                $sheet->setCellValueByColumnAndRow(1, $row, 'TOTAL (' . $totals['sales_count'] . ' sales)');
+                $sheet->setCellValueByColumnAndRow(4, $row, $totals['total_sales']);
+                $sheet->setCellValueByColumnAndRow(6, $row, $totals['original_pay_later']);
+                $sheet->setCellValueByColumnAndRow(7, $row, $totals['outstanding_amount']);
+                $sheet->setCellValueByColumnAndRow(8, $row, $totals['cleared_count'] . ' cleared, ' . $totals['outstanding_count'] . ' outstanding');
+                $sheet->getStyle("A{$row}:{$lastColLetter}{$row}")->getFont()->setBold(true);
+                $sheet->getStyle("A{$row}:{$lastColLetter}{$row}")->getFill()
+                    ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                    ->getStartColor()->setRGB('F3F4F6');
+            }
+
+            $widths = [12, 22, 14, 11, 12, 16, 14, 13, 12];
+            foreach ($widths as $i => $w) {
+                $sheet->getColumnDimensionByColumn($i + 1)->setWidth($w);
+            }
+
+            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, $fileName, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    /**
+     * Export Pay Later Customers to PDF.
+     */
+    public function exportPayLaterPdf(Request $request)
+    {
+        $startDate = $request->input('start_date');
+        $endDate   = $request->input('end_date');
+        $status    = $request->input('status');
+
+        $rows   = $this->getPayLaterRows($startDate, $endDate, $status);
+        $totals = $this->summarizePayLaterRows($rows);
+
+        $companyName = optional(\App\Models\CompanyProfile::first())->company_name ?: 'Parampara';
+        $periodLabel = $startDate && $endDate
+            ? \Carbon\Carbon::parse($startDate)->format('d M Y') . ' to ' . \Carbon\Carbon::parse($endDate)->format('d M Y')
+            : 'All records';
+        $statusLabel = $status === 'cleared' ? 'Cleared only' : ($status === 'outstanding' ? 'Outstanding only' : 'All');
+        $monthLabel = $startDate ? \Carbon\Carbon::parse($startDate)->format('M Y') : 'All';
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.pay-later-report', [
+            'rows'         => $rows,
+            'totals'       => $totals,
+            'companyName'  => $companyName,
+            'periodLabel'  => $periodLabel,
+            'statusLabel'  => $statusLabel,
+            'monthLabel'   => $monthLabel,
+            'generatedAt'  => now()->format('d M Y H:i'),
+        ])->setPaper('a4', 'landscape');
+
+        $fileName = 'Pay_Later_Customers_' . ($startDate ? date('M-Y', strtotime($startDate)) : 'All') . '.pdf';
+
+        return $pdf->download($fileName);
+    }
+
+    /**
      * Display stock report
      */
     public function stock()

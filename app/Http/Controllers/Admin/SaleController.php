@@ -81,6 +81,10 @@ class SaleController extends Controller
             );
 
             $attributes = $this->saleService->buildSaleAttributes($validated, $totalAmount);
+            // Lock in the "originated as pay-later" flag at entry time. We intentionally
+            // do NOT touch this field on update() so the historical fact survives even if
+            // the customer pays the balance later (which only changes pending_amount).
+            $attributes['is_pay_later'] = ($attributes['amount_paid'] < $totalAmount);
             $sale = Sale::create($attributes);
 
             $this->saleService->createSaleItems(

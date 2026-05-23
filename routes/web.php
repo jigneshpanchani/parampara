@@ -122,6 +122,9 @@ Route::middleware('auth')->group(function () {
         Route::get('reports/counter', [ReportController::class, 'counter'])->name('reports.counter');
         Route::post('reports/counter/export', [ReportController::class, 'exportCounter'])->name('reports.counter.export');
         Route::post('reports/counter/pdf', [ReportController::class, 'exportCounterPdf'])->name('reports.counter.pdf');
+        Route::get('reports/pay-later', [ReportController::class, 'payLater'])->name('reports.pay-later');
+        Route::post('reports/pay-later/export', [ReportController::class, 'exportPayLater'])->name('reports.pay-later.export');
+        Route::post('reports/pay-later/pdf', [ReportController::class, 'exportPayLaterPdf'])->name('reports.pay-later.pdf');
         Route::get('stock-closings',                   [StockClosingController::class, 'index'])->name('stock-closings.index');
         Route::get('stock-closings/history',           [StockClosingController::class, 'history'])->name('stock-closings.history');
         Route::post('stock-closings',                  [StockClosingController::class, 'store'])->name('stock-closings.store');

@@ -20,6 +20,7 @@ class Sale extends Model
         'cash_amount',
         'online_amount',
         'pending_amount',
+        'is_pay_later',
         'notes',
     ];
 
@@ -30,7 +31,18 @@ class Sale extends Model
         'cash_amount' => 'float',
         'online_amount' => 'float',
         'pending_amount' => 'float',
+        'is_pay_later' => 'boolean',
     ];
+
+    /**
+     * Sales that were recorded with an unpaid balance at sale time.
+     * Stays true even after the customer clears the balance later (flag is set at
+     * sale entry by SaleController::store and intentionally not touched on edits).
+     */
+    public function scopePayLater($query)
+    {
+        return $query->where('is_pay_later', true);
+    }
 
     public function items()
     {

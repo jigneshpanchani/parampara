@@ -100,6 +100,13 @@
         <p class="text-gray-600 text-sm">Date-wise Cash, Online, Pay Later, Return &amp; Expense summary</p>
     </a>
 
+    <!-- Pay Later Customers -->
+    <a href="{{ route('admin.reports.pay-later') }}" class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
+        <div class="text-4xl mb-4">⏳</div>
+        <h3 class="text-xl font-bold text-gray-800 mb-2">Pay Later Customers</h3>
+        <p class="text-gray-600 text-sm">Month-end list of customers who took anything on credit, even if cleared later</p>
+    </a>
+
     <!-- Profit Analysis -->
     <div class="bg-white rounded-lg shadow p-6">
         <div class="text-4xl mb-4">📊</div>
