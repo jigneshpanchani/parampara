@@ -978,7 +978,10 @@ class ReportController extends Controller
      *
      * Cash / Online = money actually received that day:
      *   at-sale paid portion (by mode) + follow-up sale_payments (by method).
-     * Pay Later     = pending portion of sales recorded that day (NOT yet received).
+     * Pay Later     = unpaid portion of sales recorded that day, as a snapshot at sale time
+     *                 (total_amount - amount_paid). Stays accurate after the customer pays
+     *                 later — `amount_paid` is set at sale time and is never modified by
+     *                 follow-up payments, only `pending_amount` is recalculated.
      * Return        = sale returns recorded that day (uses return_date).
      * Expense       = expenses recorded that day.
      */
@@ -1044,7 +1047,9 @@ class ReportController extends Controller
 
             foreach ($dateSales as $sale) {
                 $salesAmount += (float) $sale->total_amount;
-                $payLater    += (float) $sale->pending_amount;
+                // Snapshot of pay-later at sale time. Using `pending_amount` here would let
+                // follow-up payments retroactively zero out the original Pay Later on this date.
+                $payLater    += max(0.0, (float) $sale->total_amount - (float) $sale->amount_paid);
 
                 if ($sale->payment_mode === 'cash') {
                     $cash += (float) $sale->amount_paid;
