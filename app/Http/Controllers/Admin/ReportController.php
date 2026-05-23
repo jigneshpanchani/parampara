@@ -953,6 +953,7 @@ class ReportController extends Controller
         return view('admin.reports.counter', [
             'rows'              => $aggregated['rows'],
             'totals'            => $aggregated['totals'],
+            'hasProductFilter'  => $aggregated['has_product_filter'],
             'startDate'         => $startDate,
             'endDate'           => $endDate,
             'allProducts'       => $allProducts,
@@ -987,11 +988,13 @@ class ReportController extends Controller
      */
     protected function aggregateCounterReport(?string $startDate, ?string $endDate, ?array $productIds = null): array
     {
-        $onlineModes = config('payment.sale_modes_online');
+        $onlineModes      = config('payment.sale_modes_online');
+        $hasProductFilter = !empty($productIds);
+        $productIdSet     = $hasProductFilter ? array_flip($productIds) : [];
 
-        $salesQuery = Sale::with('items');
+        $salesQuery    = Sale::with('items');
         $paymentsQuery = SalePayment::query();
-        $returnsQuery = \App\Models\SaleReturn::query();
+        $returnsQuery  = \App\Models\SaleReturn::query();
         $expensesQuery = Expense::query();
 
         if ($startDate) {
@@ -1009,9 +1012,12 @@ class ReportController extends Controller
 
         // Product filter: include any sale/return that involves at least one of the selected products.
         // Expenses are intentionally NOT product-filtered (they are shop overhead, not per-product).
-        if (!empty($productIds)) {
+        if ($hasProductFilter) {
             $salesQuery->whereHas('items', fn ($q) => $q->whereIn('product_id', $productIds));
-            $paymentsQuery->whereHas('sale.items', fn ($q) => $q->whereIn('product_id', $productIds));
+            // Eager-load the parent sale's items so we can compute the proportional
+            // share of each follow-up payment that belongs to the selected products.
+            $paymentsQuery->with('sale.items')
+                ->whereHas('sale.items', fn ($q) => $q->whereIn('product_id', $productIds));
             $returnsQuery->whereIn('product_id', $productIds);
         }
 
@@ -1019,6 +1025,19 @@ class ReportController extends Controller
         $followUpPayments = $paymentsQuery->get();
         $saleReturns      = $returnsQuery->get();
         $expenses         = $expensesQuery->get();
+
+        // Ratio of a sale's value attributable to the selected products
+        // (selected items' total_price ÷ sale's total_amount). 1.0 if filter is off.
+        $selectedRatio = function (?Sale $sale) use ($hasProductFilter, $productIdSet): float {
+            if (!$hasProductFilter || !$sale || $sale->total_amount <= 0) return 0.0;
+            $selectedValue = 0.0;
+            foreach ($sale->items as $item) {
+                if (isset($productIdSet[$item->product_id])) {
+                    $selectedValue += (float) $item->total_price;
+                }
+            }
+            return $selectedValue / (float) $sale->total_amount;
+        };
 
         $salesByDate    = $sales->groupBy(fn ($s) => $s->sale_date->format('Y-m-d'));
         $paymentsByDate = $followUpPayments->groupBy(fn ($p) => $p->payment_date->format('Y-m-d'));
@@ -1036,6 +1055,7 @@ class ReportController extends Controller
         $rows = [];
         $totalCash = 0; $totalOnline = 0; $totalPayLater = 0;
         $totalReturn = 0; $totalExpense = 0; $totalSalesAmount = 0;
+        $totalSelectedCash = 0; $totalSelectedOnline = 0;
 
         foreach ($allDates as $isoDate) {
             $dateSales    = $salesByDate->get($isoDate, collect());
@@ -1044,6 +1064,7 @@ class ReportController extends Controller
             $dateExpenses = $expensesByDate->get($isoDate, collect());
 
             $cash = 0.0; $online = 0.0; $payLater = 0.0; $salesAmount = 0.0;
+            $selectedCash = 0.0; $selectedOnline = 0.0;
 
             foreach ($dateSales as $sale) {
                 $salesAmount += (float) $sale->total_amount;
@@ -1051,21 +1072,37 @@ class ReportController extends Controller
                 // follow-up payments retroactively zero out the original Pay Later on this date.
                 $payLater    += max(0.0, (float) $sale->total_amount - (float) $sale->amount_paid);
 
+                $saleCash = 0.0; $saleOnline = 0.0;
                 if ($sale->payment_mode === 'cash') {
-                    $cash += (float) $sale->amount_paid;
+                    $saleCash = (float) $sale->amount_paid;
                 } elseif (in_array($sale->payment_mode, $onlineModes, true)) {
-                    $online += (float) $sale->amount_paid;
+                    $saleOnline = (float) $sale->amount_paid;
                 } elseif ($sale->payment_mode === 'mix') {
-                    $cash   += (float) ($sale->cash_amount ?? 0);
-                    $online += (float) ($sale->online_amount ?? 0);
+                    $saleCash   = (float) ($sale->cash_amount ?? 0);
+                    $saleOnline = (float) ($sale->online_amount ?? 0);
+                }
+
+                $cash   += $saleCash;
+                $online += $saleOnline;
+
+                if ($hasProductFilter) {
+                    $ratio = $selectedRatio($sale);
+                    $selectedCash   += $saleCash   * $ratio;
+                    $selectedOnline += $saleOnline * $ratio;
                 }
             }
 
             foreach ($datePayments as $payment) {
-                if ($payment->payment_method === 'cash') {
-                    $cash += (float) $payment->amount;
-                } else {
-                    $online += (float) $payment->amount;
+                $paymentCash = $payment->payment_method === 'cash' ? (float) $payment->amount : 0.0;
+                $paymentOnline = $payment->payment_method === 'cash' ? 0.0 : (float) $payment->amount;
+
+                $cash   += $paymentCash;
+                $online += $paymentOnline;
+
+                if ($hasProductFilter) {
+                    $ratio = $selectedRatio($payment->sale);
+                    $selectedCash   += $paymentCash   * $ratio;
+                    $selectedOnline += $paymentOnline * $ratio;
                 }
             }
 
@@ -1074,35 +1111,42 @@ class ReportController extends Controller
             $net           = ($cash + $online) - $returnAmount - $expenseAmount;
 
             $rows[] = [
-                'date'         => \Carbon\Carbon::parse($isoDate)->format('d-m-Y'),
-                'date_iso'     => $isoDate,
-                'cash'         => $cash,
-                'online'       => $online,
-                'pay_later'    => $payLater,
-                'sales_amount' => $salesAmount,
-                'return'       => $returnAmount,
-                'expense'      => $expenseAmount,
-                'net'          => $net,
+                'date'            => \Carbon\Carbon::parse($isoDate)->format('d-m-Y'),
+                'date_iso'        => $isoDate,
+                'cash'            => $cash,
+                'online'          => $online,
+                'pay_later'       => $payLater,
+                'sales_amount'    => $salesAmount,
+                'return'          => $returnAmount,
+                'expense'         => $expenseAmount,
+                'net'             => $net,
+                'selected_cash'   => $selectedCash,
+                'selected_online' => $selectedOnline,
             ];
 
-            $totalCash        += $cash;
-            $totalOnline      += $online;
-            $totalPayLater    += $payLater;
-            $totalReturn      += $returnAmount;
-            $totalExpense     += $expenseAmount;
-            $totalSalesAmount += $salesAmount;
+            $totalCash           += $cash;
+            $totalOnline         += $online;
+            $totalPayLater       += $payLater;
+            $totalReturn         += $returnAmount;
+            $totalExpense        += $expenseAmount;
+            $totalSalesAmount    += $salesAmount;
+            $totalSelectedCash   += $selectedCash;
+            $totalSelectedOnline += $selectedOnline;
         }
 
         return [
-            'rows'   => $rows,
-            'totals' => [
-                'cash'         => $totalCash,
-                'online'       => $totalOnline,
-                'pay_later'    => $totalPayLater,
-                'sales_amount' => $totalSalesAmount,
-                'return'       => $totalReturn,
-                'expense'      => $totalExpense,
-                'net'          => ($totalCash + $totalOnline) - $totalReturn - $totalExpense,
+            'rows'              => $rows,
+            'has_product_filter' => $hasProductFilter,
+            'totals'            => [
+                'cash'            => $totalCash,
+                'online'          => $totalOnline,
+                'pay_later'       => $totalPayLater,
+                'sales_amount'    => $totalSalesAmount,
+                'return'          => $totalReturn,
+                'expense'         => $totalExpense,
+                'net'             => ($totalCash + $totalOnline) - $totalReturn - $totalExpense,
+                'selected_cash'   => $totalSelectedCash,
+                'selected_online' => $totalSelectedOnline,
             ],
         ];
     }
@@ -1119,6 +1163,7 @@ class ReportController extends Controller
         $aggregated = $this->aggregateCounterReport($startDate, $endDate, $productIds);
         $rows       = $aggregated['rows'];
         $totals     = $aggregated['totals'];
+        $hasProductFilter = $aggregated['has_product_filter'];
 
         $companyName = optional(\App\Models\CompanyProfile::first())->company_name ?: 'Parampara';
         $periodLabel = $startDate && $endDate
@@ -1131,11 +1176,15 @@ class ReportController extends Controller
 
         $fileName = 'Counter_Report_' . ($startDate ? date('M-Y', strtotime($startDate)) : 'All') . '.xlsx';
 
-        return response()->streamDownload(function () use ($rows, $totals, $companyName, $periodLabel, $productLabel) {
+        return response()->streamDownload(function () use ($rows, $totals, $hasProductFilter, $companyName, $periodLabel, $productLabel) {
             $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
 
             $headers = ['Date', 'Cash', 'Online', 'Pay Later', 'Total Sales', 'Return', 'Expense', 'Net Total'];
+            if ($hasProductFilter) {
+                $headers[] = 'Selected Cash';
+                $headers[] = 'Selected Online';
+            }
             $lastColLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers));
 
             $sheet->setCellValue('A1', $companyName . ' — Counter Report');
@@ -1178,6 +1227,10 @@ class ReportController extends Controller
                     $sheet->setCellValueByColumnAndRow(6, $row, (float) $r['return']);
                     $sheet->setCellValueByColumnAndRow(7, $row, (float) $r['expense']);
                     $sheet->setCellValueByColumnAndRow(8, $row, (float) $r['net']);
+                    if ($hasProductFilter) {
+                        $sheet->setCellValueByColumnAndRow(9, $row, (float) $r['selected_cash']);
+                        $sheet->setCellValueByColumnAndRow(10, $row, (float) $r['selected_online']);
+                    }
                     $row++;
                 }
 
@@ -1189,6 +1242,10 @@ class ReportController extends Controller
                 $sheet->setCellValueByColumnAndRow(6, $row, (float) $totals['return']);
                 $sheet->setCellValueByColumnAndRow(7, $row, (float) $totals['expense']);
                 $sheet->setCellValueByColumnAndRow(8, $row, (float) $totals['net']);
+                if ($hasProductFilter) {
+                    $sheet->setCellValueByColumnAndRow(9, $row, (float) $totals['selected_cash']);
+                    $sheet->setCellValueByColumnAndRow(10, $row, (float) $totals['selected_online']);
+                }
                 $sheet->getStyle("A{$row}:{$lastColLetter}{$row}")->getFont()->setBold(true);
                 $sheet->getStyle("A{$row}:{$lastColLetter}{$row}")->getFill()
                     ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
@@ -1196,6 +1253,10 @@ class ReportController extends Controller
             }
 
             $widths = [12, 12, 12, 12, 14, 12, 12, 14];
+            if ($hasProductFilter) {
+                $widths[] = 14;
+                $widths[] = 14;
+            }
             foreach ($widths as $i => $w) {
                 $sheet->getColumnDimensionByColumn($i + 1)->setWidth($w);
             }
@@ -1228,14 +1289,15 @@ class ReportController extends Controller
         $monthLabel = $startDate ? \Carbon\Carbon::parse($startDate)->format('M Y') : 'All';
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.counter-report', [
-            'rows'         => $aggregated['rows'],
-            'totals'       => $aggregated['totals'],
-            'companyName'  => $companyName,
-            'periodLabel'  => $periodLabel,
-            'productLabel' => $productLabel,
-            'monthLabel'   => $monthLabel,
-            'generatedAt'  => now()->format('d M Y H:i'),
-        ])->setPaper('a4', 'portrait');
+            'rows'             => $aggregated['rows'],
+            'totals'           => $aggregated['totals'],
+            'hasProductFilter' => $aggregated['has_product_filter'],
+            'companyName'      => $companyName,
+            'periodLabel'      => $periodLabel,
+            'productLabel'     => $productLabel,
+            'monthLabel'       => $monthLabel,
+            'generatedAt'      => now()->format('d M Y H:i'),
+        ])->setPaper('a4', $aggregated['has_product_filter'] ? 'landscape' : 'portrait');
 
         $fileName = 'Counter_Report_' . ($startDate ? date('M-Y', strtotime($startDate)) : 'All') . '.pdf';
 

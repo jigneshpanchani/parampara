@@ -136,6 +136,7 @@
         </tr>
     </table>
 
+    @php $colspan = ($hasProductFilter ?? false) ? 10 : 8; @endphp
     <table class="report">
         <thead>
             <tr>
@@ -147,6 +148,10 @@
                 <th>Return</th>
                 <th>Expense</th>
                 <th>Net Total</th>
+                @if($hasProductFilter ?? false)
+                    <th style="background:#dbeafe;">Sel. Cash</th>
+                    <th style="background:#ede9fe;">Sel. Online</th>
+                @endif
             </tr>
         </thead>
         <tbody>
@@ -160,9 +165,13 @@
                     <td class="num">{{ $r['return'] > 0 ? number_format($r['return'], 2) : '—' }}</td>
                     <td class="num">{{ $r['expense'] > 0 ? number_format($r['expense'], 2) : '—' }}</td>
                     <td class="num {{ $r['net'] >= 0 ? 'net-pos' : 'net-neg' }}">{{ number_format($r['net'], 2) }}</td>
+                    @if($hasProductFilter ?? false)
+                        <td class="num" style="background:#eff6ff;">{{ ($r['selected_cash'] ?? 0) > 0 ? number_format($r['selected_cash'], 2) : '—' }}</td>
+                        <td class="num" style="background:#f5f3ff;">{{ ($r['selected_online'] ?? 0) > 0 ? number_format($r['selected_online'], 2) : '—' }}</td>
+                    @endif
                 </tr>
             @empty
-                <tr><td colspan="8" class="empty">No data for the selected period.</td></tr>
+                <tr><td colspan="{{ $colspan }}" class="empty">No data for the selected period.</td></tr>
             @endforelse
         </tbody>
         @if(!empty($rows))
@@ -176,6 +185,10 @@
                     <td class="num">{{ number_format($totals['return'], 2) }}</td>
                     <td class="num">{{ number_format($totals['expense'], 2) }}</td>
                     <td class="num {{ $totals['net'] >= 0 ? 'net-pos' : 'net-neg' }}">{{ number_format($totals['net'], 2) }}</td>
+                    @if($hasProductFilter ?? false)
+                        <td class="num" style="background:#dbeafe;">{{ number_format($totals['selected_cash'] ?? 0, 2) }}</td>
+                        <td class="num" style="background:#ede9fe;">{{ number_format($totals['selected_online'] ?? 0, 2) }}</td>
+                    @endif
                 </tr>
             </tfoot>
         @endif
