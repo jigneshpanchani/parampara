@@ -98,13 +98,29 @@ class Sale extends Model
             'pending_amount' => max(0, $this->total_amount - $totalPaid),
         ];
 
-        // Auto-fill payment_mode from sale_payments when it was not set at sale time
-        if ($this->payment_mode === null && $payments->isNotEmpty()) {
-            $methods = $payments->pluck('payment_method')->unique()->values();
-            if ($methods->count() === 1 && in_array($methods[0], ['cash', 'upi', 'gpay'])) {
-                $updates['payment_mode'] = $methods[0];
-            } elseif ($methods->count() > 1) {
-                $updates['payment_mode'] = 'mix';
+        // Keep the sales table in sync with the follow-up payments for pay-later
+        // sales (recorded with nothing paid up front). This is what turns a "pay
+        // later" sale into Mix once it is settled partly in cash and partly online,
+        // and fills the cash_amount / online_amount split that the list, detail and
+        // edit screens read. Derived purely from sale_payments, so it is idempotent.
+        // Direct sales (amount_paid > 0) keep the mode/split entered at sale time.
+        if ($payments->isNotEmpty() && abs((float) $this->amount_paid) < 0.01) {
+            $cash   = (float) $payments->where('payment_method', 'cash')->sum('amount');
+            $online = (float) $payments->where('payment_method', '!=', 'cash')->sum('amount');
+
+            if ($cash > 0 && $online > 0) {
+                $updates['payment_mode']  = 'mix';
+                $updates['cash_amount']   = $cash;
+                $updates['online_amount'] = $online;
+            } elseif ($cash > 0) {
+                $updates['payment_mode']  = 'cash';
+                $updates['cash_amount']   = 0;
+                $updates['online_amount'] = 0;
+            } else { // online only
+                $methods = $payments->pluck('payment_method')->unique()->values();
+                $updates['payment_mode']  = $methods->count() === 1 ? $methods[0] : 'mix';
+                $updates['cash_amount']   = 0;
+                $updates['online_amount'] = $methods->count() === 1 ? 0 : $online;
             }
         }
 
