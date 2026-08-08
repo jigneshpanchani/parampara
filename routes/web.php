@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\PurchaseController;
 use App\Http\Controllers\Admin\SaleController;
 use App\Http\Controllers\Admin\SaleInvoiceController;
+use App\Http\Controllers\Admin\TaxInvoiceController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ExpenseController;
 use App\Http\Controllers\Admin\PurchaseReturnController;
@@ -104,6 +105,8 @@ Route::middleware('auth')->group(function () {
         Route::get('sale-invoices/{saleInvoice}/export', [SaleInvoiceController::class, 'export'])->name('sale-invoices.export');
         Route::get('sale-invoices/{saleInvoice}/pdf', [SaleInvoiceController::class, 'pdf'])->name('sale-invoices.pdf');
         Route::resource('sale-invoices', SaleInvoiceController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
+        Route::get('tax-invoices/{taxInvoice}/pdf', [TaxInvoiceController::class, 'pdf'])->name('tax-invoices.pdf');
+        Route::resource('tax-invoices', TaxInvoiceController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
         Route::resource('expense-categories', \App\Http\Controllers\Admin\ExpenseCategoryController::class);
         Route::get('expense-categories-list', [\App\Http\Controllers\Admin\ExpenseCategoryController::class, 'getCategories'])->name('expense-categories.list');
         Route::resource('expenses', ExpenseController::class);

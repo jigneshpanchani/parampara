@@ -20,6 +20,9 @@ class UpdateProductRequest extends FormRequest
         return [
             'product_name' => ['required', 'string', 'max:255'],
             'product_code' => ['required', 'string', 'max:50', 'unique:products,product_code,' . $product->id],
+            'hsn_code' => ['nullable', 'string', 'max:20'],
+            'unit_of_measure' => ['nullable', 'string', 'max:20'],
+            'gst_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'description' => ['nullable', 'string'],
             'base_price_min' => ['required', 'numeric', 'min:0'],
             'base_price_max' => ['required', 'numeric', 'min:0', 'gte:base_price_min'],

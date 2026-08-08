@@ -95,6 +95,16 @@
                         </span>
                     </a>
 
+                    <!-- Tax Invoices (formal GST, single customer) -->
+                    <a href="{{ route('admin.tax-invoices.index') }}" class="block px-6 py-3 hover:bg-gray-800 transition {{ request()->routeIs('admin.tax-invoices.*') ? 'bg-gray-800 border-l-4 border-blue-500' : '' }}">
+                        <span class="flex items-center">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"></path>
+                            </svg>
+                            📃 Tax Invoice
+                        </span>
+                    </a>
+
                     <!-- Returns (collapsible group: Sales Returns + Purchase Returns) -->
                     @php
                         $returnsActive = request()->routeIs('admin.sale-returns.*') || request()->routeIs('admin.purchase-returns.*');

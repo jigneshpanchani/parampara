@@ -73,6 +73,11 @@ class SettingsController extends Controller
             'address' => 'nullable|string|max:500',
             'website_url' => 'nullable|url|max:255',
             'gst_number' => 'nullable|string|max:20',
+            'state_code' => 'nullable|string|max:60',
+            'fssai_number' => 'nullable|string|max:40',
+            'bank_name' => 'nullable|string|max:120',
+            'bank_account_number' => 'nullable|string|max:40',
+            'bank_ifsc' => 'nullable|string|max:20',
         ]);
 
         $settings = CompanyProfile::first() ?? new CompanyProfile();

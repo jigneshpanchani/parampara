@@ -20,5 +20,10 @@ class CompanyProfile extends Model
         'address',
         'website_url',
         'gst_number',
+        'state_code',
+        'fssai_number',
+        'bank_name',
+        'bank_account_number',
+        'bank_ifsc',
     ];
 }

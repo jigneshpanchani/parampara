@@ -66,6 +66,41 @@
                 @enderror
             </div>
 
+            <!-- Tax Invoice details (state, bank, food licence) -->
+            <div class="mb-6 p-4 border border-gray-200 rounded-lg">
+                <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wide mb-4">Tax Invoice details</h3>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="state_code" class="block text-sm font-semibold text-gray-700 mb-2">State / Place of Supply</label>
+                        <input type="text" id="state_code" name="state_code" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. 24-Gujarat" value="{{ old('state_code', $settings->state_code ?? '') }}">
+                        <p class="text-gray-500 text-xs mt-1">Used to decide CGST/SGST vs IGST.</p>
+                        @error('state_code')<span class="text-red-500 text-sm">{{ $message }}</span>@enderror
+                    </div>
+                    <div>
+                        <label for="fssai_number" class="block text-sm font-semibold text-gray-700 mb-2">Food Licence (FSSAI) No.</label>
+                        <input type="text" id="fssai_number" name="fssai_number" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="{{ old('fssai_number', $settings->fssai_number ?? '') }}">
+                        @error('fssai_number')<span class="text-red-500 text-sm">{{ $message }}</span>@enderror
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label for="bank_name" class="block text-sm font-semibold text-gray-700 mb-2">Bank Name</label>
+                        <input type="text" id="bank_name" name="bank_name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="{{ old('bank_name', $settings->bank_name ?? '') }}">
+                        @error('bank_name')<span class="text-red-500 text-sm">{{ $message }}</span>@enderror
+                    </div>
+                    <div>
+                        <label for="bank_account_number" class="block text-sm font-semibold text-gray-700 mb-2">Bank A/c No.</label>
+                        <input type="text" id="bank_account_number" name="bank_account_number" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="{{ old('bank_account_number', $settings->bank_account_number ?? '') }}">
+                        @error('bank_account_number')<span class="text-red-500 text-sm">{{ $message }}</span>@enderror
+                    </div>
+                    <div>
+                        <label for="bank_ifsc" class="block text-sm font-semibold text-gray-700 mb-2">IFSC Code</label>
+                        <input type="text" id="bank_ifsc" name="bank_ifsc" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="{{ old('bank_ifsc', $settings->bank_ifsc ?? '') }}">
+                        @error('bank_ifsc')<span class="text-red-500 text-sm">{{ $message }}</span>@enderror
+                    </div>
+                </div>
+            </div>
+
             <!-- Logo Upload -->
             <div class="mb-6">
                 <label for="logo" class="block text-sm font-semibold text-gray-700 mb-2">Logo (for Login & Sidebar)</label>

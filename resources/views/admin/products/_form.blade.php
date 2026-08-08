@@ -19,6 +19,35 @@
 
 <div class="grid grid-cols-3 gap-4 mb-4">
     <div>
+        <label for="hsn_code" class="block text-sm font-semibold text-gray-700 mb-2">HSN/SAC Code <span class="text-gray-400 text-xs">(for tax invoices)</span></label>
+        <input type="text" id="hsn_code" name="hsn_code" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="{{ old('hsn_code', $product?->hsn_code) }}">
+        @error('hsn_code')
+            <span class="text-red-500 text-sm">{{ $message }}</span>
+        @enderror
+    </div>
+    <div>
+        <label for="unit_of_measure" class="block text-sm font-semibold text-gray-700 mb-2">Unit of Measure</label>
+        <input type="text" id="unit_of_measure" name="unit_of_measure" list="product_unit_options" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. KG, Litre, Pcs" value="{{ old('unit_of_measure', $product?->unit_of_measure) }}">
+        <datalist id="product_unit_options">
+            @foreach (config('tax_invoice.units', []) as $unit)
+                <option value="{{ $unit }}"></option>
+            @endforeach
+        </datalist>
+        @error('unit_of_measure')
+            <span class="text-red-500 text-sm">{{ $message }}</span>
+        @enderror
+    </div>
+    <div>
+        <label for="gst_rate" class="block text-sm font-semibold text-gray-700 mb-2">GST Rate (%)</label>
+        <input type="number" id="gst_rate" name="gst_rate" step="0.01" min="0" max="100" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="{{ old('gst_rate', $product?->gst_rate ?? 0) }}">
+        @error('gst_rate')
+            <span class="text-red-500 text-sm">{{ $message }}</span>
+        @enderror
+    </div>
+</div>
+
+<div class="grid grid-cols-3 gap-4 mb-4">
+    <div>
         <label for="base_price_min" class="block text-sm font-semibold text-gray-700 mb-2">Base Price Min *</label>
         <input type="number" id="base_price_min" name="base_price_min" step="0.01" min="0" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required value="{{ old('base_price_min', $product?->base_price_min) }}">
         @error('base_price_min')

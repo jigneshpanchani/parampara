@@ -32,6 +32,9 @@ class Product extends Model
     protected $fillable = [
         'product_name',
         'product_code',
+        'hsn_code',
+        'unit_of_measure',
+        'gst_rate',
         'description',
         'base_price_min',
         'base_price_max',
@@ -46,6 +49,7 @@ class Product extends Model
         'base_price_min' => 'float',
         'base_price_max' => 'float',
         'selling_price' => 'float',
+        'gst_rate' => 'float',
         'is_active' => 'boolean',
     ];
 
