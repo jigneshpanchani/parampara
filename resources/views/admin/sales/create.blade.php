@@ -246,12 +246,8 @@ function attachRowListeners(row) {
     }
 }
 
-// Attach listeners to initial rows
-document.querySelectorAll('.product-row').forEach(row => {
-    attachRowListeners(row);
-});
-
-// Handle payment mode change
+// Payment mode elements (declared before the initial-row loop below,
+// because updateTotals() references paymentModeSelect/amountPaidInput)
 const paymentModeSelect = document.getElementById('payment_mode');
 const mixPaymentDetails = document.getElementById('mix_payment_details');
 const amountPaidContainer = document.getElementById('amount_paid_container');
@@ -261,6 +257,11 @@ const onlineAmountInput = document.getElementById('online_amount');
 const sellerNameInput = document.getElementById('seller_name');
 const sellerNameHintOptional = document.getElementById('seller_name_hint_optional');
 const sellerNameHintRequired = document.getElementById('seller_name_hint_required');
+
+// Attach listeners to initial rows
+document.querySelectorAll('.product-row').forEach(row => {
+    attachRowListeners(row);
+});
 
 function handlePaymentModeChange() {
     const paymentMode = paymentModeSelect.value;
